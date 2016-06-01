@@ -2,7 +2,6 @@
 The fastest and most functional command processor (SA:MP)
 
 ## Example
-
 ```pawn
 #include <Pawn.CMD> 
 
@@ -24,3 +23,5 @@ public OnPlayerReceivedCommand(playerid, cmd[], params[], bool:exists)
     return 1; 
 }  
 ```
+## Comparison
+![alt tag](http://i.imgur.com/EyjYENV.png)
