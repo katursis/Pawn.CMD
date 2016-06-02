@@ -7,7 +7,6 @@
 #include <regex>
 #include <string>
 #include <vector>
-#include <chrono>
 
 #ifdef THISCALL
 #undef THISCALL
@@ -17,35 +16,35 @@
 #define THISCALL __thiscall
 
 const char *pattern =
-"\x83\xEC\x08"		/*sub esp,0x8*/ \
-"\x53"			/*push ebx*/ \
-"\x8B\x5C\x24\x14"	/*mov ebx,DWORD PTR [esp+0x14]*/ \
-"\x55"			/*push ebp*/ \
-"\x8B\x6C\x24\x14"	/*mov ebp,DWORD PTR [esp+0x14]*/ \
-"\x56"			/*push esi*/ \
-"\x33\xF6"		/*xor esi,esi*/ \
-"\x57"			/*push edi*/ \
-"\x8B\xF9"		/*mov edi,ecx*/ \
-"\x89\x74\x24\x10"	/*mov DWORD PTR [esp+0x10],esi*/ \
-"\x8B\x04\xB7"		/*mov eax,DWORD PTR [edi+esi*4]*/ \
-"\x85\xC0";		/*test eax,eax*/
+"\x83\xEC\x08"          /*sub esp,0x8*/ \
+"\x53"                  /*push ebx*/ \
+"\x8B\x5C\x24\x14"      /*mov ebx,DWORD PTR [esp+0x14]*/ \
+"\x55"                  /*push ebp*/ \
+"\x8B\x6C\x24\x14"      /*mov ebp,DWORD PTR [esp+0x14]*/ \
+"\x56"                  /*push esi*/ \
+"\x33\xF6"              /*xor esi,esi*/ \
+"\x57"                  /*push edi*/ \
+"\x8B\xF9"              /*mov edi,ecx*/ \
+"\x89\x74\x24\x10"      /*mov DWORD PTR [esp+0x10],esi*/ \
+"\x8B\x04\xB7"          /*mov eax,DWORD PTR [edi+esi*4]*/ \
+"\x85\xC0";             /*test eax,eax*/
 
 const char *mask = "xxxxxxxxxxxxxxxxxxxxxxxxxxxx";
 #else
 #define THISCALL
 
 const char *pattern =
-"\x55"				/*push ebp*/ \
-"\x89\xE5"			/*mov ebp,esp*/ \
-"\x57"				/*push edi*/ \
-"\x56"				/*push esi*/ \
-"\x53"				/*push ebx*/ \
-"\x83\xEC\x2C"			/*sub esp,0x2c*/ \
-"\x8B\x75\x08"			/*mov esi,DWORD PTR [ebp+0x8]*/ \
-"\xC7\x45\xE4\x00\x00\x00\x00"	/*mov DWORD PTR [ebp-0x1c],0x0*/ \
-"\x8B\x7D\x10"			/*mov edi,DWORD PTR [ebp+0x10]*/ \
-"\x89\xF3"			/*mov ebx,esi*/ \
-"\xEB\x14";			/*jmp 0x2e*/
+"\x55"                          /*push ebp*/ \
+"\x89\xE5"                      /*mov ebp,esp*/ \
+"\x57"                          /*push edi*/ \
+"\x56"                          /*push esi*/ \
+"\x53"                          /*push ebx*/ \
+"\x83\xEC\x2C"                  /*sub esp,0x2c*/ \
+"\x8B\x75\x08"                  /*mov esi,DWORD PTR [ebp+0x8]*/ \
+"\xC7\x45\xE4\x00\x00\x00\x00"  /*mov DWORD PTR [ebp-0x1c],0x0*/ \
+"\x8B\x7D\x10"                  /*mov edi,DWORD PTR [ebp+0x10]*/ \
+"\x89\xF3"                      /*mov ebx,esi*/ \
+"\xEB\x14";                     /*jmp 0x2e*/
 
 const char *mask = "xxxxxxxxxxxxxxxxxxxxxxxxxx";
 #endif
@@ -74,7 +73,7 @@ public:
 					addr_fs_on_player_command_text,
 					m::get_func_addr(&HOOK_CFilterScripts__OnPlayerCommandText));
 
-				logprintf("Pawn.CMD plugin v1.0 by urShadow was loaded");
+				logprintf("Pawn.CMD plugin v2.0 by urShadow was loaded");
 
 				return true;
 			}
@@ -103,8 +102,6 @@ public:
 			{
 				amx_RegisterFunc(amx, "PC_RegAlias", &n_PC_RegAlias);
 
-				GetAmxMap()[amx].first = -1;
-
 				std::vector<int> alias_public_ids;
 				std::string s;
 
@@ -120,17 +117,25 @@ public:
 
 					if (std::regex_match(s, m, _regex_public_cmd_name))
 					{
-						GetAmxMap()[amx].second[m[1].str()] = i;
+						_amx_map[amx].cmd_map[m[1].str()] = i;
 
 						logprintf("[Pawn.CMD] command '%s' has been registered", m[1].str().c_str());
 					}
-					else if (std::regex_match(s, m, _regex_public_cmd_alias))
+					else if (std::regex_match(s, _regex_public_cmd_alias))
 					{
 						alias_public_ids.push_back(i);
 					}
-					else if (std::string(publicName) == "OnPlayerReceivedCommand")
+					else if (std::string(publicName) == "OnPlayerCommandReceived")
 					{
-						GetAmxMap()[amx].first = i;
+						auto &info = _amx_map[amx];
+						info.public_on_player_command_received.id = i;
+						info.public_on_player_command_received.exists = true;
+					}
+					else if (std::string(publicName) == "OnPlayerCommandPerformed")
+					{
+						auto &info = _amx_map[amx];
+						info.public_on_player_command_performed.id = i;
+						info.public_on_player_command_performed.exists = true;
 					}
 				}
 
@@ -148,20 +153,32 @@ public:
 
 	static void AmxUnload(AMX *amx)
 	{
-		auto &AMXs = GetAmxMap();
-		const auto &iter = AMXs.find(amx);
+		auto iter = _amx_map.find(amx);
 
-		if (iter != AMXs.end())
+		if (iter != _amx_map.end())
 		{
-			AMXs.erase(iter);
+			_amx_map.erase(iter);
 		}
 	}
 
 private:
 
-	using cmd_map = std::unordered_map<std::string, int>;
-	using public_pair = std::pair<int, cmd_map>;
-	using amx_map = std::unordered_map<AMX *, public_pair>;
+	struct AmxInfo;
+
+	using cmd_map_t = std::unordered_map<std::string, int>;
+	using amx_map_t = std::unordered_map<AMX *, AmxInfo>;
+
+	struct AmxInfo
+	{
+		struct
+		{
+			bool exists;
+			int id;
+		}	public_on_player_command_received{},
+			public_on_player_command_performed{};
+
+		cmd_map_t cmd_map;
+	};
 
 	// native PC_RegAlias(const cmd[], const alias[], ...);
 	static cell AMX_NATIVE_CALL n_PC_RegAlias(AMX *amx, cell *params)
@@ -169,13 +186,11 @@ private:
 		if (params[0] < (2 * sizeof(cell)))
 			return 0;
 
-		auto &AMXs = GetAmxMap();
-
-		auto iterAmx = AMXs.find(amx);
-		if (iterAmx == AMXs.end())
+		auto iterAmx = _amx_map.find(amx);
+		if (iterAmx == _amx_map.end())
 			return logprintf("[Pawn.CMD] amx not found"), 0;
 
-		auto iterPublic = iterAmx->second.second.end();
+		auto iterPublic = iterAmx->second.cmd_map.end();
 		int originalID{};
 
 		cell *cptr_cmd{};
@@ -198,8 +213,8 @@ private:
 
 			if (i == 1)
 			{
-				iterPublic = iterAmx->second.second.find(str_cmd);
-				if (iterPublic == iterAmx->second.second.end())
+				iterPublic = iterAmx->second.cmd_map.find(str_cmd);
+				if (iterPublic == iterAmx->second.cmd_map.end())
 				{
 					return logprintf("[Pawn.CMD] command '%s' not found", str_cmd.c_str()), 0;
 				}
@@ -208,7 +223,7 @@ private:
 			}
 			else
 			{
-				iterAmx->second.second[str_cmd] = originalID;
+				iterAmx->second.cmd_map[str_cmd] = originalID;
 
 				logprintf("[Pawn.CMD] alias '%s' for '%s' has been registered", str_cmd.c_str(), iterPublic->first.c_str());
 			}
@@ -249,46 +264,41 @@ private:
 
 		params = &params[i];
 
-		auto &AMXs = GetAmxMap();
-		cmd_map::iterator publicIter{};
-
-		cell addr_cmd{}, addr_params{};
-		bool exists{};
-		cell retval = 1;
-
-		for (auto &iter : AMXs)
+		cmd_map_t::iterator publicIter{};
+		cell addr{}, retval = 1;
+		for (auto &iter : _amx_map)
 		{
-			exists = (publicIter = iter.second.second.find(cmd)) != iter.second.second.end();
-
-			// forward OnPlayerReceivedCommand(playerid, cmd[], params[], bool:exists);
-			if (iter.second.first != -1)
+			if (iter.second.public_on_player_command_received.exists)
 			{
-				amx_Push(iter.first, static_cast<cell>(exists));
-				amx_PushString(iter.first, &addr_params, nullptr, params, 0, 0);
-				amx_PushString(iter.first, &addr_cmd, nullptr, cmd, 0, 0);
+				amx_PushString(iter.first, &addr, nullptr, szCommandText, 0, 0);
 				amx_Push(iter.first, playerid);
-				amx_Exec(iter.first, &retval, iter.second.first);
-				amx_Release(iter.first, addr_cmd);
-				amx_Release(iter.first, addr_params);
+				amx_Exec(iter.first, &retval, iter.second.public_on_player_command_received.id);
+				amx_Release(iter.first, addr);
+
+				if (retval == 0)
+					return 1;
 			}
 
-			if (exists && retval)
+			if ((publicIter = iter.second.cmd_map.find(cmd)) != iter.second.cmd_map.end())
 			{
-				amx_PushString(iter.first, &addr_params, nullptr, params, 0, 0);
+				amx_PushString(iter.first, &addr, nullptr, params, 0, 0);
 				amx_Push(iter.first, playerid);
-				amx_Exec(iter.first, nullptr, publicIter->second);
-				amx_Release(iter.first, addr_params);
+				amx_Exec(iter.first, &retval, publicIter->second);
+				amx_Release(iter.first, addr);
+			}
+			else retval = -1;
+
+			if (iter.second.public_on_player_command_performed.exists)
+			{
+				amx_Push(iter.first, retval);
+				amx_PushString(iter.first, &addr, nullptr, szCommandText, 0, 0);
+				amx_Push(iter.first, playerid);
+				amx_Exec(iter.first, nullptr, iter.second.public_on_player_command_performed.id);
+				amx_Release(iter.first, addr);
 			}
 		}
 
 		return 1;
-	}
-
-	static amx_map &GetAmxMap(void)
-	{
-		static amx_map AMXs;
-
-		return AMXs;
 	}
 
 	static inline void str_to_lower(std::string &str)
@@ -298,6 +308,9 @@ private:
 			c = tolower(c, _locale);
 		}
 	}
+
+	static amx_map_t
+		_amx_map;
 
 	static std::shared_ptr<m::hook>
 		_hook_fs__on_player_command_text;
@@ -310,12 +323,15 @@ private:
 		_locale;
 };
 
+PawnCMD::amx_map_t
+PawnCMD::_amx_map;
+
 std::shared_ptr<m::hook>
 PawnCMD::_hook_fs__on_player_command_text;
 
 std::regex
 PawnCMD::_regex_public_cmd_name(R"(^cmd_(\w+)$)"),
-PawnCMD::_regex_public_cmd_alias(R"(^alias_(\w+)$)");
+PawnCMD::_regex_public_cmd_alias(R"(^alias_\w+$)");
 
 std::locale
 PawnCMD::_locale;
