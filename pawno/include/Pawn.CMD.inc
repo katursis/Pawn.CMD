@@ -1,4 +1,4 @@
-// Pawn.CMD plugin v1.0 by urShadow
+// Pawn.CMD plugin v2.0 by urShadow
  
 #if defined _pawncmd_included
   #endinput
@@ -6,17 +6,19 @@
 #define _pawncmd_included
 
 native PC_RegAlias(const cmd[], const alias[], ...);
-forward OnPlayerReceivedCommand(playerid, cmd[], params[], bool:exists);
+
+forward OnPlayerCommandReceived(playerid, cmdtext[]);
+forward OnPlayerCommandPerformed(playerid, cmdtext[], result);
 
 #define cmd:%0(%1) \
 	forward cmd_%0(%1); \
 	public cmd_%0(%1)
 	
-#define CMD:%1(%2) \
-	cmd:%1(%2)
+#define CMD:%0(%1) \
+	cmd:%0(%1)
 	
-#define COMMAND:%1(%2) \
-	cmd:%1(%2)
+#define COMMAND:%0(%1) \
+	cmd:%0(%1)
  
 #define alias:%0(%1); \
 	forward alias_%0(); \
