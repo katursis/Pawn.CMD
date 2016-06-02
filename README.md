@@ -11,7 +11,7 @@ cmd:menu(playerid, params[]) // also possible to use CMD and COMMAND
 } 
 alias:menu("settings", "help", "info"); // aliases (not case sensitive) 
 
-public OnPlayerReceivedCommand(playerid, cmd[], params[], bool:exists) 
+public OnPlayerReceivedCommand(playerid, cmd[], params[], bool:exists) // executed before cmd
 { 
     if (!exists) 
     { 
