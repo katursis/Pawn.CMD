@@ -41,8 +41,9 @@ public OnPlayerCommandPerformed(playerid, cmdtext[], result)
 	if(result == -1)
 	{
 		SendClientMessage(playerid, 0xFFFFFFFF, "SERVER: Unknown command.");
-		return;
+		return 0;
 	}
+	
+	return 1;
 }
 ```
-This callback doesn't handle returns.
