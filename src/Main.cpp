@@ -7,6 +7,7 @@
 #include <regex>
 #include <string>
 #include <vector>
+#include <list>
 
 #ifdef THISCALL
 #undef THISCALL
@@ -59,6 +60,26 @@ class PawnCMD
 {
 public:
 
+	struct AmxInfo;
+
+	using cmd_map_t = std::unordered_map<std::string, int>;
+	using amx_list_t = std::list<std::shared_ptr<AmxInfo>>;
+
+	struct AmxInfo
+	{
+		AMX *amx;
+		bool is_gamemode;
+
+		struct
+		{
+			bool exists;
+			int id;
+		}	public_on_player_command_received,
+			public_on_player_command_performed;
+
+		cmd_map_t cmd_map;
+	};
+
 	static bool Init(void)
 	{
 		m::sig_scanner scanner;
@@ -73,7 +94,7 @@ public:
 					addr_fs_on_player_command_text,
 					m::get_func_addr(&HOOK_CFilterScripts__OnPlayerCommandText));
 
-				logprintf("Pawn.CMD plugin v2.0 by urShadow was loaded");
+				logprintf("Pawn.CMD plugin v2.1 by urShadow was loaded");
 
 				return true;
 			}
@@ -88,11 +109,41 @@ public:
 	{
 		_hook_fs__on_player_command_text.reset();
 
+		_amx_list.clear();
+
 		logprintf("[Pawn.CMD] Was unloaded");
 	}
 
 	static void AmxLoad(AMX *amx)
 	{
+		static std::vector<AMX_NATIVE_INFO> native_vec =
+		{
+			{ "PC_Init", &n_PC_Init },
+			{ "PC_RegAlias", &n_PC_RegAlias }
+		};
+
+		amx_Register(amx, native_vec.data(), native_vec.size());
+	}
+
+	static void AmxUnload(AMX *amx)
+	{
+		_amx_list.remove_if([amx](const std::shared_ptr<AmxInfo> &info)
+		{
+			if (!info)
+				return false;
+
+			return info->amx == amx;
+		});
+	}
+
+private:
+
+	// native PC_Init(bool:is_gamemode);
+	static cell AMX_NATIVE_CALL n_PC_Init(AMX *amx, cell *params)
+	{
+		if (params[0] != sizeof(cell))
+			return 0;
+
 		int numPublics{};
 		amx_NumPublics(amx, &numPublics);
 
@@ -100,10 +151,12 @@ public:
 		{
 			try
 			{
-				amx_RegisterFunc(amx, "PC_RegAlias", &n_PC_RegAlias);
-
+				bool is_gamemode = params[1] != 0;
+				auto info = std::make_shared<AmxInfo>();
 				std::vector<int> alias_public_ids;
 				std::string s;
+
+				info->amx = amx; info->is_gamemode = is_gamemode;
 
 				for (int i{}; i < numPublics; i++)
 				{
@@ -117,7 +170,7 @@ public:
 
 					if (std::regex_match(s, m, _regex_public_cmd_name))
 					{
-						_amx_map[amx].cmd_map[m[1].str()] = i;
+						info->cmd_map[m[1].str()] = i;
 
 						logprintf("[Pawn.CMD] command '%s' has been registered", m[1].str().c_str());
 					}
@@ -127,15 +180,30 @@ public:
 					}
 					else if (std::string(publicName) == "OnPlayerCommandReceived")
 					{
-						auto &info = _amx_map[amx];
-						info.public_on_player_command_received.id = i;
-						info.public_on_player_command_received.exists = true;
+						info->public_on_player_command_received.id = i;
+						info->public_on_player_command_received.exists = true;
 					}
 					else if (std::string(publicName) == "OnPlayerCommandPerformed")
 					{
-						auto &info = _amx_map[amx];
-						info.public_on_player_command_performed.id = i;
-						info.public_on_player_command_performed.exists = true;
+						info->public_on_player_command_performed.id = i;
+						info->public_on_player_command_performed.exists = true;
+					}
+				}
+
+				if (is_gamemode)
+				{
+					_amx_list.push_back(info); // at the end
+				}
+				else // is filterscript
+				{
+					if (_amx_list.empty() ||
+						(!_amx_list.back()->is_gamemode))
+					{
+						_amx_list.push_back(info);
+					}
+					else
+					{
+						_amx_list.insert(std::prev(_amx_list.end()), info);
 					}
 				}
 
@@ -149,36 +217,9 @@ public:
 				logprintf("[Pawn.CMD] %s", e.what());
 			}
 		}
+
+		return 1;
 	}
-
-	static void AmxUnload(AMX *amx)
-	{
-		auto iter = _amx_map.find(amx);
-
-		if (iter != _amx_map.end())
-		{
-			_amx_map.erase(iter);
-		}
-	}
-
-private:
-
-	struct AmxInfo;
-
-	using cmd_map_t = std::unordered_map<std::string, int>;
-	using amx_map_t = std::unordered_map<AMX *, AmxInfo>;
-
-	struct AmxInfo
-	{
-		struct
-		{
-			bool exists;
-			int id;
-		}	public_on_player_command_received{},
-			public_on_player_command_performed{};
-
-		cmd_map_t cmd_map;
-	};
 
 	// native PC_RegAlias(const cmd[], const alias[], ...);
 	static cell AMX_NATIVE_CALL n_PC_RegAlias(AMX *amx, cell *params)
@@ -186,47 +227,61 @@ private:
 		if (params[0] < (2 * sizeof(cell)))
 			return 0;
 
-		auto iterAmx = _amx_map.find(amx);
-		if (iterAmx == _amx_map.end())
-			return logprintf("[Pawn.CMD] amx not found"), 0;
-
-		auto iterPublic = iterAmx->second.cmd_map.end();
-		int originalID{};
-
-		cell *cptr_cmd{};
-		int len{};
-		std::string str_cmd;
-
-		for (size_t i = 1; i <= params[0] / sizeof(cell); i++)
+		try
 		{
-			char cmd[32]{};
-
-			amx_GetAddr(amx, params[i], &cptr_cmd);
-			amx_StrLen(cptr_cmd, &len);
-
-			if (len > 31)
-				len = 31;
-
-			amx_GetString(cmd, cptr_cmd, 0, len + 1);
-
-			str_to_lower(str_cmd = cmd);
-
-			if (i == 1)
+			auto iterAmx = std::find_if(_amx_list.begin(), _amx_list.end(), [amx](const std::shared_ptr<AmxInfo> &info)
 			{
-				iterPublic = iterAmx->second.cmd_map.find(str_cmd);
-				if (iterPublic == iterAmx->second.cmd_map.end())
+				if (!info)
+					return false;
+
+				return info->amx == amx;
+			});
+
+			if (iterAmx == _amx_list.end())
+				return logprintf("[Pawn.CMD] amx %p was not found", amx), 0;
+
+			auto iterPublic = iterAmx->get()->cmd_map.end();
+			int originalID{};
+
+			cell *cptr_cmd{};
+			int len{};
+			std::string str_cmd;
+
+			for (size_t i = 1; i <= params[0] / sizeof(cell); i++)
+			{
+				char cmd[32]{};
+
+				amx_GetAddr(amx, params[i], &cptr_cmd);
+				amx_StrLen(cptr_cmd, &len);
+
+				if (len > 31)
+					len = 31;
+
+				amx_GetString(cmd, cptr_cmd, 0, len + 1);
+
+				str_to_lower(str_cmd = cmd);
+
+				if (i == 1)
 				{
-					return logprintf("[Pawn.CMD] command '%s' not found", str_cmd.c_str()), 0;
+					iterPublic = iterAmx->get()->cmd_map.find(str_cmd);
+					if (iterPublic == iterAmx->get()->cmd_map.end())
+					{
+						return logprintf("[Pawn.CMD] command '%s' was not found", str_cmd.c_str()), 0;
+					}
+
+					originalID = iterPublic->second;
 				}
+				else
+				{
+					iterAmx->get()->cmd_map[str_cmd] = originalID;
 
-				originalID = iterPublic->second;
+					logprintf("[Pawn.CMD] alias '%s' of '%s' has been registered", str_cmd.c_str(), iterPublic->first.c_str());
+				}
 			}
-			else
-			{
-				iterAmx->second.cmd_map[str_cmd] = originalID;
-
-				logprintf("[Pawn.CMD] alias '%s' for '%s' has been registered", str_cmd.c_str(), iterPublic->first.c_str());
-			}
+		}
+		catch (const std::exception &e)
+		{
+			logprintf("[Pawn.CMD] %s", e.what());
 		}
 
 		return 1;
@@ -266,35 +321,40 @@ private:
 
 		cmd_map_t::iterator publicIter{};
 		cell addr{}, retval = 1;
-		for (auto &iter : _amx_map)
+		for (auto &iter : _amx_list)
 		{
-			if (iter.second.public_on_player_command_received.exists)
+			auto &info = *iter;
+
+			if (info.public_on_player_command_received.exists)
 			{
-				amx_PushString(iter.first, &addr, nullptr, szCommandText, 0, 0);
-				amx_Push(iter.first, playerid);
-				amx_Exec(iter.first, &retval, iter.second.public_on_player_command_received.id);
-				amx_Release(iter.first, addr);
+				amx_PushString(info.amx, &addr, nullptr, szCommandText, 0, 0);
+				amx_Push(info.amx, playerid);
+				amx_Exec(info.amx, &retval, info.public_on_player_command_received.id);
+				amx_Release(info.amx, addr);
 
 				if (retval == 0)
-					return 1;
+					break;
 			}
 
-			if ((publicIter = iter.second.cmd_map.find(cmd)) != iter.second.cmd_map.end())
+			if ((publicIter = info.cmd_map.find(cmd)) != info.cmd_map.end())
 			{
-				amx_PushString(iter.first, &addr, nullptr, params, 0, 0);
-				amx_Push(iter.first, playerid);
-				amx_Exec(iter.first, &retval, publicIter->second);
-				amx_Release(iter.first, addr);
+				amx_PushString(info.amx, &addr, nullptr, params, 0, 0);
+				amx_Push(info.amx, playerid);
+				amx_Exec(info.amx, &retval, publicIter->second);
+				amx_Release(info.amx, addr);
 			}
 			else retval = -1;
 
-			if (iter.second.public_on_player_command_performed.exists)
+			if (info.public_on_player_command_performed.exists)
 			{
-				amx_Push(iter.first, retval);
-				amx_PushString(iter.first, &addr, nullptr, szCommandText, 0, 0);
-				amx_Push(iter.first, playerid);
-				amx_Exec(iter.first, nullptr, iter.second.public_on_player_command_performed.id);
-				amx_Release(iter.first, addr);
+				amx_Push(info.amx, retval);
+				amx_PushString(info.amx, &addr, nullptr, szCommandText, 0, 0);
+				amx_Push(info.amx, playerid);
+				amx_Exec(info.amx, &retval, info.public_on_player_command_performed.id);
+				amx_Release(info.amx, addr);
+
+				if (retval == 0)
+					break;
 			}
 		}
 
@@ -303,14 +363,11 @@ private:
 
 	static inline void str_to_lower(std::string &str)
 	{
-		for (auto &c : str)
-		{
-			c = tolower(c, _locale);
-		}
+		for (auto &c : str)	c = tolower(c, _locale);
 	}
 
-	static amx_map_t
-		_amx_map;
+	static amx_list_t
+		_amx_list;
 
 	static std::shared_ptr<m::hook>
 		_hook_fs__on_player_command_text;
@@ -323,15 +380,15 @@ private:
 		_locale;
 };
 
-PawnCMD::amx_map_t
-PawnCMD::_amx_map;
+PawnCMD::amx_list_t
+PawnCMD::_amx_list;
 
 std::shared_ptr<m::hook>
 PawnCMD::_hook_fs__on_player_command_text;
 
 std::regex
 PawnCMD::_regex_public_cmd_name(R"(^cmd_(\w+)$)"),
-PawnCMD::_regex_public_cmd_alias(R"(^alias_\w+$)");
+PawnCMD::_regex_public_cmd_alias(R"(^pc_alias_\w+$)");
 
 std::locale
 PawnCMD::_locale;
