@@ -47,3 +47,7 @@ public OnPlayerCommandPerformed(playerid, cmdtext[], result)
 	return 1;
 }
 ```
+##### If you want to use Pawn.CMD in a filterscript, put this define before including:
+```pawn
+#define FILTERSCRIPT 
+```
