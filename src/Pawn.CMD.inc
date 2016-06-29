@@ -7,19 +7,31 @@
 	#define _pawncmd_included
 #endif
 
-#define PAWNCMD_INCLUDE_VERSION 30
+#define PAWNCMD_INCLUDE_VERSION 31
 
 #if !defined __cplusplus
 	public _pawncmd_version = PAWNCMD_INCLUDE_VERSION;
 	#pragma unused _pawncmd_version
 
-	native PC_Init(bool:is_gamemode);
+	native PC_Init(bool:is_gamemode); // internal
+	
 	native PC_RegAlias(const cmd[], const alias[], ...);
 	native PC_SetFlags(const cmd[], flags);
-	native PC_GetFlags(const cmd[], &flags);
+	native PC_GetFlags(const cmd[]);
 	native PC_EmulateCommand(playerid, const cmdtext[]);
-	native PC_RenameCommand(const name[], const newname[]);
-	native PC_DeleteCommand(const name[]);
+	native PC_RenameCommand(const cmd[], const newname[]);
+	native PC_CommandExists(const cmd[]);	
+	native PC_DeleteCommand(const cmd[]);
+	
+	native CmdArray:PC_GetCommandArray();
+	native CmdArray:PC_GetAliasArray(const cmd[]);
+	native PC_GetArraySize(CmdArray:arr);
+	native PC_FreeArray(&CmdArray:arr);
+	native PC_GetCommandName(CmdArray:arr, index, dest[], size = sizeof dest);	
+	
+	#if defined PC_OnInit
+		forward PC_OnInit();
+	#endif
 
 	#if defined OnPlayerCommandReceived
 		forward OnPlayerCommandReceived(playerid, cmd[], params[], flags);
@@ -44,15 +56,19 @@
 			PC_SetFlags(#%0, %1);
 		
 	#define CMD cmd	
+	
 	#define COMMAND cmd
 	
 	#define callcmd::%0(%1) \
 		pc_cmd_%0(%1)
+		
+	#define PC_HasFlag(%0,%1) \
+		(PC_GetFlags(%0) & %1)
 
 	#if !defined isnull
-		#define isnull(%1) \
-			((!(%1[0])) || (((%1[0]) == '\1') && (!(%1[1]))))
-	#endif
+		#define isnull(%0) \
+			((!(%0[0])) || (((%0[0]) == '\1') && (!(%0[1]))))
+	#endif	
 
 	#if defined FILTERSCRIPT
 		public OnFilterScriptInit()

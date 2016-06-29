@@ -4,10 +4,12 @@
 #include "urmem.hpp"
 
 #include <unordered_map>
+#include <unordered_set>
 #include <regex>
 #include <string>
 #include <vector>
 #include <list>
+#include <deque>
 
 #include "Pawn.CMD.inc"
 
@@ -64,10 +66,16 @@ public:
 
 	static constexpr char
 		*kName = "Pawn.CMD",
-		*kVersion = "3.0",
+		*kVersion = "3.1",
 		*kPublicVarName = "_pawncmd_version";
 
 	struct AmxInfo;
+	struct CommandInfo;
+
+	using CommandMap = std::unordered_map<std::string, CommandInfo>;
+	using AmxList = std::list<AmxInfo>;
+	using CmdArray = std::vector<std::string>;
+	using CmdArraySet = std::unordered_set<std::shared_ptr<CmdArray>>;
 
 	struct CommandInfo
 	{
@@ -76,20 +84,17 @@ public:
 		bool is_alias;
 	};
 
-	using CommandMap = std::unordered_map<std::string, CommandInfo>;
-	using AmxList = std::list<AmxInfo>;
-
 	struct AmxInfo
 	{
 		AMX *amx;
-		bool is_gamemode;
 
 		struct
 		{
 			bool exists;
 			int id;
 		}	public_on_player_command_received,
-			public_on_player_command_performed;
+			public_on_player_command_performed,
+			public_on_init;
 
 		CommandMap cmd_map;
 	};
@@ -125,6 +130,10 @@ public:
 
 		_amx_list.clear();
 
+		_amx_init_deque.clear();
+
+		_cmd_array_set.clear();
+
 		logprintf("%s plugin v%s by urShadow unloaded", kName, kVersion);
 	}
 
@@ -133,21 +142,21 @@ public:
 		static const std::vector<AMX_NATIVE_INFO> native_vec =
 		{
 			{ "PC_Init", &n_PC_Init },
+
 			{ "PC_RegAlias", &n_PC_RegAlias },
 			{ "PC_SetFlags", &n_PC_SetFlags },
 			{ "PC_GetFlags", &n_PC_GetFlags },
 			{ "PC_EmulateCommand", &n_PC_EmulateCommand },
 			{ "PC_RenameCommand", &n_PC_RenameCommand },
+			{ "PC_CommandExists", &n_PC_CommandExists },
 			{ "PC_DeleteCommand", &n_PC_DeleteCommand },
-		};
 
-		cell addr{}, *phys_addr{};
-		if (!amx_FindPubVar(amx, kPublicVarName, &addr) &&
-			!amx_GetAddr(amx, addr, &phys_addr))
-		{
-			if (*phys_addr != PAWNCMD_INCLUDE_VERSION)
-				return logprintf("[%s] %s: .inc-file version does not equal the plugin version", kName, __FUNCTION__);
-		}
+			{ "PC_GetCommandArray", &n_PC_GetCommandArray },
+			{ "PC_GetAliasArray", &n_PC_GetAliasArray },
+			{ "PC_GetArraySize", &n_PC_GetArraySize },
+			{ "PC_FreeArray", &n_PC_FreeArray },
+			{ "PC_GetCommandName", &n_PC_GetCommandName },
+		};
 
 		amx_Register(amx, native_vec.data(), native_vec.size());
 	}
@@ -160,33 +169,25 @@ public:
 		});
 	}
 
-private:
-
-	// native PC_Init(bool:is_gamemode);
-	static cell AMX_NATIVE_CALL n_PC_Init(AMX *amx, cell *params)
+	static void ProcessTick(void)
 	{
-		if (!check_params(__FUNCTION__, 1, params))
-			return 0;
+		if (_amx_init_deque.empty())
+			return;
 
-		int num_publics{};
-
-		amx_NumPublics(amx, &num_publics);
-
-		if (!num_publics)
-			return 0;
-
-		try
+		for (auto amx : _amx_init_deque)
 		{
-			const bool is_gamemode = (params[1] != 0);
+			int num_publics{};
 
-			std::vector<int>
-				alias_public_ids,
-				flags_public_ids;
+			amx_NumPublics(amx, &num_publics);
+
+			if (!num_publics)
+				continue;
+
+			std::deque<int> alias_and_flags_public_ids;
 
 			AmxInfo info{};
 
 			info.amx = amx;
-			info.is_gamemode = is_gamemode;
 
 			for (int i{}; i < num_publics; i++)
 			{
@@ -208,11 +209,11 @@ private:
 				}
 				else if (std::regex_match(s, _regex_public_cmd_alias))
 				{
-					alias_public_ids.push_back(i);
+					alias_and_flags_public_ids.push_back(i);
 				}
 				else if (std::regex_match(s, _regex_public_cmd_flags))
 				{
-					flags_public_ids.push_back(i);
+					alias_and_flags_public_ids.push_front(i);
 				}
 				else if (s == "OnPlayerCommandReceived")
 				{
@@ -224,40 +225,59 @@ private:
 					info.public_on_player_command_performed.id = i;
 					info.public_on_player_command_performed.exists = true;
 				}
+				else if (s == "PC_OnInit")
+				{
+					info.public_on_init.id = i;
+					info.public_on_init.exists = true;
+				}
 			}
+
+			_amx_list.push_back(info);
+
+			for (int id : alias_and_flags_public_ids)
+			{
+				amx_Exec(amx, nullptr, id);
+			}
+
+			if (info.public_on_init.exists)
+			{
+				amx_Exec(amx, nullptr, info.public_on_init.id);
+			}
+		}
+
+		_amx_init_deque.clear();
+	}
+
+private:
+
+	// native PC_Init(bool:is_gamemode);
+	static cell AMX_NATIVE_CALL n_PC_Init(AMX *amx, cell *params)
+	{
+		if (!check_params(__FUNCTION__, 1, params))
+			return 0;
+
+		cell addr{}, *phys_addr{};
+		if (!amx_FindPubVar(amx, kPublicVarName, &addr) &&
+			!amx_GetAddr(amx, addr, &phys_addr))
+		{
+			if (*phys_addr != PAWNCMD_INCLUDE_VERSION)
+				return logprintf("[%s] %s: .inc-file version does not equal the plugin's version", kName, __FUNCTION__), 0;
+
+			if (std::find(_amx_init_deque.begin(), _amx_init_deque.end(), amx) != _amx_init_deque.end())
+				return logprintf("[%s] %s: this amx already in a queue", kName, __FUNCTION__), 0;
+
+			const bool is_gamemode = (params[1] != 0);
 
 			if (is_gamemode)
-			{
-				_amx_list.push_back(info); // at the end
-			}
-			else // is filterscript
-			{
-				if (_amx_list.empty() ||
-					(!_amx_list.back().is_gamemode))
-				{
-					_amx_list.push_back(info);
-				}
-				else
-				{
-					_amx_list.insert(std::prev(_amx_list.end()), info);
-				}
-			}
-
-			for (int id : flags_public_ids)
-			{
-				amx_Exec(amx, nullptr, id);
-			}
-
-			for (int id : alias_public_ids)
-			{
-				amx_Exec(amx, nullptr, id);
-			}
+				_amx_init_deque.push_back(amx); // at the end			
+			else // is a filterscript		
+				_amx_init_deque.push_front(amx);
 
 			return 1;
 		}
-		catch (const std::exception &e)
+		else
 		{
-			logprintf("[%s] %s: %s", kName, __FUNCTION__, e.what());
+			logprintf("[%s] %s: .inc-file version not found", kName, __FUNCTION__);
 		}
 
 		return 0;
@@ -283,9 +303,11 @@ private:
 
 		unsigned int original_flags{};
 
+		std::unique_ptr<char[]> cmdstr;
+
 		for (size_t i = 1; i <= params[0] / sizeof(cell); i++)
 		{
-			const std::unique_ptr<char[]> cmdstr(get_string(amx, params[i]));
+			cmdstr.reset(get_string(amx, params[i]));
 
 			if (!cmdstr)
 			{
@@ -294,9 +316,9 @@ private:
 				continue;
 			}
 
-			std::string s;
+			std::string s(cmdstr.get());
 
-			str_to_lower(s = cmdstr.get());
+			str_to_lower(s);
 
 			if (i == 1)
 			{
@@ -345,20 +367,24 @@ private:
 		if (!cmd)
 			return logprintf("[%s] %s: invalid cmd", kName, __FUNCTION__), 0;
 
-		const auto iter_cmd = iter_amx->cmd_map.find(cmd.get());
+		std::string s(cmd.get());
+
+		str_to_lower(s);
+
+		const auto iter_cmd = iter_amx->cmd_map.find(s);
 
 		if (iter_cmd == iter_amx->cmd_map.end())
-			return logprintf("[%s] %s: cmd '%s' not found", kName, __FUNCTION__, cmd.get()), 0;
+			return logprintf("[%s] %s: cmd '%s' not found", kName, __FUNCTION__, s.c_str()), 0;
 
 		iter_cmd->second.flags = static_cast<unsigned int>(params[2]);
 
 		return 1;
 	}
 
-	// native PC_GetFlags(const cmd[], &flags);
+	// native PC_GetFlags(const cmd[]);
 	static cell AMX_NATIVE_CALL n_PC_GetFlags(AMX *amx, cell *params)
 	{
-		if (!check_params(__FUNCTION__, 2, params))
+		if (!check_params(__FUNCTION__, 1, params))
 			return 0;
 
 		const auto iter_amx = std::find_if(_amx_list.begin(), _amx_list.end(), [amx](const AmxInfo &info)
@@ -374,19 +400,16 @@ private:
 		if (!cmd)
 			return logprintf("[%s] %s: invalid cmd", kName, __FUNCTION__), 0;
 
-		const auto iter_cmd = iter_amx->cmd_map.find(cmd.get());
+		std::string s(cmd.get());
+
+		str_to_lower(s);
+
+		const auto iter_cmd = iter_amx->cmd_map.find(s);
 
 		if (iter_cmd == iter_amx->cmd_map.end())
-			return logprintf("[%s] %s: cmd '%s' not found", kName, __FUNCTION__, cmd.get()), 0;
+			return logprintf("[%s] %s: cmd '%s' not found", kName, __FUNCTION__, s.c_str()), 0;
 
-		cell *cptr{};
-
-		if (amx_GetAddr(amx, params[2], &cptr) != AMX_ERR_NONE)
-			return logprintf("[%s] %s: invalid flags reference", kName, __FUNCTION__), 0;
-
-		*cptr = static_cast<cell>(iter_cmd->second.flags);
-
-		return 1;
+		return static_cast<cell>(iter_cmd->second.flags);
 	}
 
 	// native PC_EmulateCommand(playerid, const cmdtext[]);
@@ -405,7 +428,7 @@ private:
 		return 1;
 	}
 
-	// native PC_RenameCommand(const name[], const newname[]);
+	// native PC_RenameCommand(const cmd[], const newname[]);
 	static cell AMX_NATIVE_CALL n_PC_RenameCommand(AMX *amx, cell *params)
 	{
 		if (!check_params(__FUNCTION__, 2, params))
@@ -420,30 +443,67 @@ private:
 			return logprintf("[%s] %s: amx not found", kName, __FUNCTION__), 0;
 
 		const std::unique_ptr<char[]>
-			name(get_string(amx, params[1])),
+			cmd(get_string(amx, params[1])),
 			newname(get_string(amx, params[2]));
 
-		if ((!name) || (!newname))
+		if ((!cmd) || (!newname))
 			return logprintf("[%s] %s: invalid name or newname", kName, __FUNCTION__), 0;
 
-		const auto iter_cmd = iter_amx->cmd_map.find(name.get());
+		std::string
+			s_cmd(cmd.get()),
+			s_newname(newname.get());
+
+		str_to_lower(s_cmd);
+
+		str_to_lower(s_newname);
+
+		const auto iter_cmd = iter_amx->cmd_map.find(s_cmd);
 
 		if (iter_cmd == iter_amx->cmd_map.end())
-			return logprintf("[%s] %s: cmd '%s' not found", kName, __FUNCTION__, name.get()), 0;
+			return logprintf("[%s] %s: cmd '%s' not found", kName, __FUNCTION__, s_cmd.c_str()), 0;
 
-		if (iter_amx->cmd_map.find(newname.get()) != iter_amx->cmd_map.end())
-			return logprintf("[%s] %s: name '%s' is occupied", kName, __FUNCTION__, newname.get()), 0;
+		if (iter_amx->cmd_map.find(s_newname) != iter_amx->cmd_map.end())
+			return logprintf("[%s] %s: name '%s' is occupied", kName, __FUNCTION__, s_newname.c_str()), 0;
 
 		const int public_id = iter_cmd->second.public_id;
 
 		iter_amx->cmd_map.erase(iter_cmd);
 
-		iter_amx->cmd_map[newname.get()].public_id = public_id;
+		iter_amx->cmd_map[s_newname].public_id = public_id;
 
 		return 1;
 	}
 
-	// native PC_DeleteCommand(const name[]);
+	// native PC_CommandExists(const cmd[]);
+	static cell AMX_NATIVE_CALL n_PC_CommandExists(AMX *amx, cell *params)
+	{
+		if (!check_params(__FUNCTION__, 1, params))
+			return 0;
+
+		const auto iter_amx = std::find_if(_amx_list.begin(), _amx_list.end(), [amx](const AmxInfo &info)
+		{
+			return info.amx == amx;
+		});
+
+		if (iter_amx == _amx_list.end())
+			return logprintf("[%s] %s: amx not found", kName, __FUNCTION__), 0;
+
+		const std::unique_ptr<char[]> cmd(get_string(amx, params[1]));
+
+		if (!cmd)
+			return logprintf("[%s] %s: invalid cmd name", kName, __FUNCTION__), 0;
+
+		std::string s(cmd.get());
+
+		str_to_lower(s);
+
+		if (iter_amx->cmd_map.find(s) == iter_amx->cmd_map.end())
+			return 0;
+
+		return 1;
+	}
+
+	// native PC_DeleteCommand(const cmd[]);
 	static cell AMX_NATIVE_CALL n_PC_DeleteCommand(AMX *amx, cell *params)
 	{
 		if (!check_params(__FUNCTION__, 1, params))
@@ -457,19 +517,166 @@ private:
 		if (iter_amx == _amx_list.end())
 			return logprintf("[%s] %s: amx not found", kName, __FUNCTION__), 0;
 
-		const std::unique_ptr<char[]> name(get_string(amx, params[1]));
+		const std::unique_ptr<char[]> cmd(get_string(amx, params[1]));
 
-		if (!name)
+		if (!cmd)
 			return logprintf("[%s] %s: invalid name", kName, __FUNCTION__), 0;
 
-		const auto iter_cmd = iter_amx->cmd_map.find(name.get());
+		std::string s(cmd.get());
+
+		str_to_lower(s);
+
+		const auto iter_cmd = iter_amx->cmd_map.find(s);
 
 		if (iter_cmd == iter_amx->cmd_map.end())
-			return logprintf("[%s] %s: cmd '%s' not found", kName, __FUNCTION__, name.get()), 0;
+			return logprintf("[%s] %s: cmd '%s' not found", kName, __FUNCTION__, s.c_str()), 0;
 
 		iter_amx->cmd_map.erase(iter_cmd);
 
 		return 1;
+	}
+
+	// native CmdArray:PC_GetCommandArray();
+	static cell AMX_NATIVE_CALL n_PC_GetCommandArray(AMX *amx, cell *params)
+	{
+		if (!check_params(__FUNCTION__, 0, params))
+			return 0;
+
+		const auto iter_amx = std::find_if(_amx_list.begin(), _amx_list.end(), [amx](const AmxInfo &info)
+		{
+			return info.amx == amx;
+		});
+
+		if (iter_amx == _amx_list.end())
+			return logprintf("[%s] %s: amx not found", kName, __FUNCTION__), 0;
+
+		const auto cmd_array = std::make_shared<CmdArray>();
+
+		for (auto &cmd : iter_amx->cmd_map)
+		{
+			if (cmd.second.is_alias)
+				continue;
+
+			cmd_array->push_back(cmd.first);
+		}
+
+		_cmd_array_set.insert(cmd_array);
+
+		return reinterpret_cast<cell>(cmd_array.get());
+	}
+
+	// native CmdArray:PC_GetAliasArray(const cmd[]);
+	static cell AMX_NATIVE_CALL n_PC_GetAliasArray(AMX *amx, cell *params)
+	{
+		if (!check_params(__FUNCTION__, 1, params))
+			return 0;
+
+		const auto iter_amx = std::find_if(_amx_list.begin(), _amx_list.end(), [amx](const AmxInfo &info)
+		{
+			return info.amx == amx;
+		});
+
+		if (iter_amx == _amx_list.end())
+			return logprintf("[%s] %s: amx not found", kName, __FUNCTION__), 0;
+
+		const std::unique_ptr<char[]> cmd(get_string(amx, params[1]));
+
+		if (!cmd)
+			return logprintf("[%s] %s: invalid cmd name", kName, __FUNCTION__), 0;
+
+		std::string s(cmd.get());
+
+		str_to_lower(s);
+
+		const auto iter_cmd = iter_amx->cmd_map.find(s);
+
+		if (iter_cmd == iter_amx->cmd_map.end())
+			return logprintf("[%s] %s: cmd '%s' not found", kName, __FUNCTION__, s.c_str()), 0;
+
+		if (iter_cmd->second.is_alias)
+			return logprintf("[%s] %s: cmd '%s' is an alias", kName, __FUNCTION__, s.c_str()), 0;
+
+		const int public_id = iter_cmd->second.public_id;
+
+		const auto cmd_array = std::make_shared<CmdArray>();
+
+		for (auto &cmd : iter_amx->cmd_map)
+		{
+			if (cmd.second.public_id != public_id)
+				continue;
+			if (!cmd.second.is_alias)
+				continue;
+
+			cmd_array->push_back(cmd.first);
+		}
+
+		_cmd_array_set.insert(cmd_array);
+
+		return reinterpret_cast<cell>(cmd_array.get());
+	}
+
+	// native PC_GetArraySize(CmdArray:arr);
+	static cell AMX_NATIVE_CALL n_PC_GetArraySize(AMX *amx, cell *params)
+	{
+		if (!check_params(__FUNCTION__, 1, params))
+			return 0;
+
+		const auto cmd_array = get_cmd_array(params[1]);
+
+		if (!cmd_array)
+			return logprintf("[%s] %s: invalid array handle", kName, __FUNCTION__), 0;
+
+		return static_cast<cell>(cmd_array->size());
+	}
+
+	// native PC_FreeArray(&CmdArray:arr);
+	static cell AMX_NATIVE_CALL n_PC_FreeArray(AMX *amx, cell *params)
+	{
+		if (!check_params(__FUNCTION__, 1, params))
+			return 0;
+
+		cell *cptr{};
+
+		if (amx_GetAddr(amx, params[1], &cptr) != AMX_ERR_NONE)
+			return logprintf("[%s] %s: invalid param reference", kName, __FUNCTION__), 0;
+
+		const auto cmd_array = get_cmd_array(*cptr);
+
+		if (!cmd_array)
+			return logprintf("[%s] %s: invalid array handle", kName, __FUNCTION__), 0;
+
+		_cmd_array_set.erase(cmd_array);
+
+		*cptr = 0;
+
+		return 1;
+	}
+
+	// native PC_GetCommandName(CmdArray:arr, index, name[], size = sizeof name);
+	static cell AMX_NATIVE_CALL n_PC_GetCommandName(AMX *amx, cell *params)
+	{
+		if (!check_params(__FUNCTION__, 4, params))
+			return 0;
+
+		try
+		{
+			const auto cmd_array = get_cmd_array(params[1]);
+
+			if (!cmd_array)
+				return logprintf("[%s] %s: invalid array handle", kName, __FUNCTION__), 0;
+
+			const auto index = static_cast<size_t>(params[2]);
+
+			set_amxstring(amx, params[3], cmd_array->at(index).c_str(), params[4]);
+
+			return 1;
+		}
+		catch (const std::exception &e)
+		{
+			logprintf("[%s] %s: %s", kName, __FUNCTION__, e.what());
+		}
+
+		return 0;
 	}
 
 	static int THISCALL HOOK_CFilterScripts__OnPlayerCommandText(void *_this, cell playerid, const char *szCommandText)
@@ -516,7 +723,7 @@ private:
 
 		CommandMap::const_iterator iter_cmd{};
 
-		cell addr_cmd{}, addr_params{}, retval = 1, flags{};
+		cell addr_cmd{}, addr_params{}, retval{}, flags{};
 
 		bool command_exists{};
 
@@ -535,7 +742,7 @@ private:
 				amx_Release(iter.amx, addr_cmd);
 				amx_Release(iter.amx, addr_params);
 
-				if (retval == 0)
+				if (!retval)
 					break;
 			}
 
@@ -558,11 +765,24 @@ private:
 				amx_Exec(iter.amx, &retval, iter.public_on_player_command_performed.id);
 				amx_Release(iter.amx, addr_cmd);
 				amx_Release(iter.amx, addr_params);
-
-				if (retval == 0)
-					break;
 			}
+
+			if (retval == 1)
+				break;
 		}
+	}
+
+	static inline CmdArraySet::value_type get_cmd_array(cell ptr)
+	{
+		const auto iter = std::find_if(_cmd_array_set.begin(), _cmd_array_set.end(), [ptr](const CmdArraySet::value_type &p)
+		{
+			return p.get() == reinterpret_cast<void *>(ptr);
+		});
+
+		if (iter != _cmd_array_set.end())
+			return *iter;
+
+		return nullptr;
 	}
 
 	static inline void str_to_lower(std::string &str)
@@ -591,6 +811,21 @@ private:
 		return nullptr;
 	}
 
+	static inline int set_amxstring(AMX *amx, cell amx_addr, const char *source, int max)
+	{
+		cell *dest = reinterpret_cast<cell *>(amx->base +
+			static_cast<int>(reinterpret_cast<AMX_HEADER *>(amx->base)->dat + amx_addr));
+
+		cell *start = dest;
+
+		while (max--&&*source)
+			*dest++ = static_cast<cell>(*source++);
+
+		*dest = 0;
+
+		return dest - start;
+	}
+
 	static inline bool check_params(const char *native, int count, cell *params)
 	{
 		if (params[0] != (count * sizeof(cell)))
@@ -601,6 +836,12 @@ private:
 
 	static AmxList
 		_amx_list;
+
+	static std::deque<AMX *>
+		_amx_init_deque;
+
+	static CmdArraySet
+		_cmd_array_set;
 
 	static std::shared_ptr<m::hook>
 		_hook_fs__on_player_command_text;
@@ -617,6 +858,12 @@ private:
 Plugin::AmxList
 Plugin::_amx_list;
 
+std::deque<AMX *>
+Plugin::_amx_init_deque;
+
+Plugin::CmdArraySet
+Plugin::_cmd_array_set;
+
 std::shared_ptr<m::hook>
 Plugin::_hook_fs__on_player_command_text;
 
@@ -630,7 +877,7 @@ Plugin::_locale;
 
 PLUGIN_EXPORT unsigned int PLUGIN_CALL Supports()
 {
-	return SUPPORTS_VERSION | SUPPORTS_AMX_NATIVES;
+	return SUPPORTS_VERSION | SUPPORTS_AMX_NATIVES | SUPPORTS_PROCESS_TICK;
 }
 
 PLUGIN_EXPORT bool PLUGIN_CALL Load(void **ppData)
@@ -654,4 +901,9 @@ PLUGIN_EXPORT void PLUGIN_CALL AmxLoad(AMX *amx)
 PLUGIN_EXPORT void PLUGIN_CALL AmxUnload(AMX *amx)
 {
 	Plugin::AmxUnload(amx);
+}
+
+PLUGIN_EXPORT void PLUGIN_CALL ProcessTick()
+{
+	Plugin::ProcessTick();
 }
