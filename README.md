@@ -1,7 +1,7 @@
 # Pawn.CMD
 The fastest and most functional command processor (SA:MP)
 ## Comparison
-![alt tag](http://i.imgur.com/qGk9Axb.png)
+![alt tag](http://i.imgur.com/v43AinV.png)
 ## Natives
 ```pawn
 native PC_Init(bool:is_gamemode); // internal
