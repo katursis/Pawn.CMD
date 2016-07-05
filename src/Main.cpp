@@ -55,9 +55,10 @@ const char *mask = "xxxxxxxxxxxxxxxxxxxxxxxxxx";
 #endif
 
 using m = urmem;
-using logprintf_t = void(*)(char* format, ...);
+using logprintf_t = void(*)(char *format, ...);
 
 logprintf_t logprintf;
+
 extern void *pAMXFunctions;
 
 class Plugin
@@ -66,10 +67,11 @@ public:
 
 	static constexpr char
 		*kName = "Pawn.CMD",
-		*kVersion = "3.1",
+		*kVersion = "3.1.1",
 		*kPublicVarName = "_pawncmd_version";
 
 	struct AmxInfo;
+
 	struct CommandInfo;
 
 	using CommandMap = std::unordered_map<std::string, CommandInfo>;
@@ -105,12 +107,12 @@ public:
 
 		if (scanner.init(reinterpret_cast<void *>(logprintf)))
 		{
-			m::address_t addr_fs_on_player_command_text{};
+			m::address_t addr{};
 
-			if (scanner.find(pattern, mask, addr_fs_on_player_command_text))
+			if (scanner.find(pattern, mask, addr))
 			{
 				_hook_fs__on_player_command_text = std::make_shared<m::hook>(
-					addr_fs_on_player_command_text,
+					addr,
 					m::get_func_addr(&HOOK_CFilterScripts__OnPlayerCommandText));
 
 				logprintf("%s plugin v%s by urShadow loaded", kName, kVersion);
@@ -185,9 +187,7 @@ public:
 
 			std::deque<int> alias_and_flags_public_ids;
 
-			AmxInfo info{};
-
-			info.amx = amx;
+			AmxInfo info{ amx };
 
 			for (int i{}; i < num_publics; i++)
 			{
@@ -201,11 +201,11 @@ public:
 
 				if (std::regex_match(s, m, _regex_public_cmd_name))
 				{
-					auto cmdname = m[1].str();
+					auto cmd_name = m[1].str();
 
-					str_to_lower(cmdname);
+					str_to_lower(cmd_name);
 
-					info.cmd_map[cmdname].public_id = i;
+					info.cmd_map.emplace(std::move(cmd_name), CommandInfo{ i, 0, false });
 				}
 				else if (std::regex_match(s, _regex_public_cmd_alias))
 				{
@@ -217,18 +217,15 @@ public:
 				}
 				else if (s == "OnPlayerCommandReceived")
 				{
-					info.public_on_player_command_received.id = i;
-					info.public_on_player_command_received.exists = true;
+					info.public_on_player_command_received = { true, i };
 				}
 				else if (s == "OnPlayerCommandPerformed")
 				{
-					info.public_on_player_command_performed.id = i;
-					info.public_on_player_command_performed.exists = true;
+					info.public_on_player_command_performed = { true, i };
 				}
 				else if (s == "PC_OnInit")
 				{
-					info.public_on_init.id = i;
-					info.public_on_init.exists = true;
+					info.public_on_init = { true, i };
 				}
 			}
 
@@ -257,6 +254,7 @@ private:
 			return 0;
 
 		cell addr{}, *phys_addr{};
+
 		if (!amx_FindPubVar(amx, kPublicVarName, &addr) &&
 			!amx_GetAddr(amx, addr, &phys_addr))
 		{
@@ -465,11 +463,11 @@ private:
 		if (iter_amx->cmd_map.find(s_newname) != iter_amx->cmd_map.end())
 			return logprintf("[%s] %s: name '%s' is occupied", kName, __FUNCTION__, s_newname.c_str()), 0;
 
-		const int public_id = iter_cmd->second.public_id;
+		const auto command_info = iter_cmd->second;
 
 		iter_amx->cmd_map.erase(iter_cmd);
 
-		iter_amx->cmd_map[s_newname].public_id = public_id;
+		iter_amx->cmd_map.emplace(std::move(s_newname), command_info);
 
 		return 1;
 	}
@@ -552,7 +550,7 @@ private:
 
 		const auto cmd_array = std::make_shared<CmdArray>();
 
-		for (auto &cmd : iter_amx->cmd_map)
+		for (const auto &cmd : iter_amx->cmd_map)
 		{
 			if (cmd.second.is_alias)
 				continue;
@@ -600,10 +598,11 @@ private:
 
 		const auto cmd_array = std::make_shared<CmdArray>();
 
-		for (auto &cmd : iter_amx->cmd_map)
+		for (const auto &cmd : iter_amx->cmd_map)
 		{
 			if (cmd.second.public_id != public_id)
 				continue;
+
 			if (!cmd.second.is_alias)
 				continue;
 
@@ -704,6 +703,7 @@ private:
 		char c{};
 
 		i = 0;
+
 		while (
 			(c = params[i]) &&
 			(c != ' ')
@@ -883,6 +883,7 @@ PLUGIN_EXPORT unsigned int PLUGIN_CALL Supports()
 PLUGIN_EXPORT bool PLUGIN_CALL Load(void **ppData)
 {
 	pAMXFunctions = ppData[PLUGIN_DATA_AMX_EXPORTS];
+
 	logprintf = reinterpret_cast<logprintf_t>(ppData[PLUGIN_DATA_LOGPRINTF]);
 
 	return Plugin::Load();
