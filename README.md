@@ -4,8 +4,6 @@ The fastest and most functional command processor (SA:MP)
 ![alt tag](http://i.imgur.com/v43AinV.png)
 ## Natives
 ```pawn
-native PC_Init(bool:is_gamemode); // internal
-	
 native PC_RegAlias(const cmd[], const alias[], ...);
 native PC_SetFlags(const cmd[], flags);
 native PC_GetFlags(const cmd[]);
