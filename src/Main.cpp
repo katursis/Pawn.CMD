@@ -1,3 +1,27 @@
+/*
+ * The MIT License (MIT)
+ *
+ * Copyright (c) 2016 urShadow
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
 #include "SDK/amx/amx.h"
 #include "SDK/plugincommon.h"
 
@@ -9,7 +33,7 @@
 #include <string>
 #include <vector>
 #include <list>
-#include <deque>
+#include <queue>
 
 #include "Pawn.CMD.inc"
 
@@ -67,26 +91,34 @@ public:
 
 	static constexpr char
 		*kName = "Pawn.CMD",
-		*kVersion = "3.1.1",
-		*kPublicVarName = "_pawncmd_version";
+		*kVersion = "3.1.2",
+		*kPublicVarNameVersion = "_pawncmd_version",
+		*kPublicVarNameIsGamemode = "_pawncmd_is_gamemode";
 
-	struct AmxInfo;
+	struct AmxListItem;
+	struct AmxQueueItem;
+	struct CommandMapItem;
 
-	struct CommandInfo;
-
-	using CommandMap = std::unordered_map<std::string, CommandInfo>;
-	using AmxList = std::list<AmxInfo>;
+	using CommandMap = std::unordered_map<std::string, CommandMapItem>;
+	using AmxList = std::list<AmxListItem>;
+	using AmxQueue = std::queue<AmxQueueItem>;
 	using CmdArray = std::vector<std::string>;
 	using CmdArraySet = std::unordered_set<std::shared_ptr<CmdArray>>;
 
-	struct CommandInfo
+	struct CommandMapItem
 	{
 		int public_id;
 		unsigned int flags;
 		bool is_alias;
 	};
 
-	struct AmxInfo
+	struct AmxQueueItem
+	{
+		AMX *amx;
+		bool is_gamemode;
+	};
+
+	struct AmxListItem
 	{
 		AMX *amx;
 
@@ -132,7 +164,8 @@ public:
 
 		_amx_list.clear();
 
-		_amx_init_deque.clear();
+		while (!_amx_init_queue.empty())
+			_amx_init_queue.pop();
 
 		_cmd_array_set.clear();
 
@@ -143,8 +176,6 @@ public:
 	{
 		static const std::vector<AMX_NATIVE_INFO> native_vec =
 		{
-			{ "PC_Init", &n_PC_Init },
-
 			{ "PC_RegAlias", &n_PC_RegAlias },
 			{ "PC_SetFlags", &n_PC_SetFlags },
 			{ "PC_GetFlags", &n_PC_GetFlags },
@@ -160,24 +191,38 @@ public:
 			{ "PC_GetCommandName", &n_PC_GetCommandName },
 		};
 
+		cell include_version{}, is_gamemode{};
+
+		if (get_public_var(amx, kPublicVarNameVersion, include_version) &&
+			get_public_var(amx, kPublicVarNameIsGamemode, is_gamemode))
+		{
+			if (include_version != PAWNCMD_INCLUDE_VERSION)
+				return logprintf("[%s] %s: .inc-file version does not equal the plugin's version", kName, __FUNCTION__);
+
+			_amx_init_queue.emplace(AmxQueueItem{ amx, is_gamemode == 1 });
+		}
+
 		amx_Register(amx, native_vec.data(), native_vec.size());
 	}
 
 	static void AmxUnload(AMX *amx)
 	{
-		_amx_list.remove_if([amx](const AmxInfo &info)
+		_amx_list.remove_if([amx](const AmxList::value_type &item)
 		{
-			return info.amx == amx;
+			return item.amx == amx;
 		});
 	}
 
 	static void ProcessTick(void)
 	{
-		if (_amx_init_deque.empty())
-			return;
-
-		for (auto amx : _amx_init_deque)
+		while (!_amx_init_queue.empty())
 		{
+			const auto &queue_item = _amx_init_queue.front();
+
+			const auto amx = queue_item.amx;
+
+			const bool is_gamemode = queue_item.is_gamemode;
+
 			int num_publics{};
 
 			amx_NumPublics(amx, &num_publics);
@@ -187,7 +232,7 @@ public:
 
 			std::deque<int> alias_and_flags_public_ids;
 
-			AmxInfo info{ amx };
+			AmxListItem list_item{ amx };
 
 			for (int i{}; i < num_publics; i++)
 			{
@@ -205,7 +250,7 @@ public:
 
 					str_to_lower(cmd_name);
 
-					info.cmd_map.emplace(std::move(cmd_name), CommandInfo{ i, 0, false });
+					list_item.cmd_map.emplace(std::move(cmd_name), CommandMapItem{ i, 0, false });
 				}
 				else if (std::regex_match(s, _regex_public_cmd_alias))
 				{
@@ -217,69 +262,38 @@ public:
 				}
 				else if (s == "OnPlayerCommandReceived")
 				{
-					info.public_on_player_command_received = { true, i };
+					list_item.public_on_player_command_received = { true, i };
 				}
 				else if (s == "OnPlayerCommandPerformed")
 				{
-					info.public_on_player_command_performed = { true, i };
+					list_item.public_on_player_command_performed = { true, i };
 				}
 				else if (s == "PC_OnInit")
 				{
-					info.public_on_init = { true, i };
+					list_item.public_on_init = { true, i };
 				}
 			}
 
-			_amx_list.push_back(info);
+			if (is_gamemode)
+				_amx_list.push_back(list_item);
+			else
+				_amx_list.push_front(list_item);
 
-			for (int id : alias_and_flags_public_ids)
+			for (const int id : alias_and_flags_public_ids)
 			{
 				amx_Exec(amx, nullptr, id);
 			}
 
-			if (info.public_on_init.exists)
+			if (list_item.public_on_init.exists)
 			{
-				amx_Exec(amx, nullptr, info.public_on_init.id);
+				amx_Exec(amx, nullptr, list_item.public_on_init.id);
 			}
-		}
 
-		_amx_init_deque.clear();
+			_amx_init_queue.pop();
+		}
 	}
 
 private:
-
-	// native PC_Init(bool:is_gamemode);
-	static cell AMX_NATIVE_CALL n_PC_Init(AMX *amx, cell *params)
-	{
-		if (!check_params(__FUNCTION__, 1, params))
-			return 0;
-
-		cell addr{}, *phys_addr{};
-
-		if (!amx_FindPubVar(amx, kPublicVarName, &addr) &&
-			!amx_GetAddr(amx, addr, &phys_addr))
-		{
-			if (*phys_addr != PAWNCMD_INCLUDE_VERSION)
-				return logprintf("[%s] %s: .inc-file version does not equal the plugin's version", kName, __FUNCTION__), 0;
-
-			if (std::find(_amx_init_deque.begin(), _amx_init_deque.end(), amx) != _amx_init_deque.end())
-				return logprintf("[%s] %s: this amx already in a queue", kName, __FUNCTION__), 0;
-
-			const bool is_gamemode = (params[1] != 0);
-
-			if (is_gamemode)
-				_amx_init_deque.push_back(amx); // at the end			
-			else // is a filterscript		
-				_amx_init_deque.push_front(amx);
-
-			return 1;
-		}
-		else
-		{
-			logprintf("[%s] %s: .inc-file version not found", kName, __FUNCTION__);
-		}
-
-		return 0;
-	}
 
 	// native PC_RegAlias(const cmd[], const alias[], ...);
 	static cell AMX_NATIVE_CALL n_PC_RegAlias(AMX *amx, cell *params)
@@ -287,9 +301,9 @@ private:
 		if (params[0] < (2 * sizeof(cell)))
 			return 0;
 
-		const auto iter_amx = std::find_if(_amx_list.begin(), _amx_list.end(), [amx](const AmxInfo &info)
+		const auto iter_amx = std::find_if(_amx_list.begin(), _amx_list.end(), [amx](const AmxList::value_type &item)
 		{
-			return info.amx == amx;
+			return item.amx == amx;
 		});
 
 		if (iter_amx == _amx_list.end())
@@ -339,7 +353,7 @@ private:
 					continue;
 				}
 
-				iter_amx->cmd_map.emplace(std::move(s), CommandInfo{ original_id, original_flags, true });
+				iter_amx->cmd_map.emplace(std::move(s), CommandMapItem{ original_id, original_flags, true });
 			}
 		}
 
@@ -352,9 +366,9 @@ private:
 		if (!check_params(__FUNCTION__, 2, params))
 			return 0;
 
-		const auto iter_amx = std::find_if(_amx_list.begin(), _amx_list.end(), [amx](const AmxInfo &info)
+		const auto iter_amx = std::find_if(_amx_list.begin(), _amx_list.end(), [amx](const AmxList::value_type &item)
 		{
-			return info.amx == amx;
+			return item.amx == amx;
 		});
 
 		if (iter_amx == _amx_list.end())
@@ -385,9 +399,9 @@ private:
 		if (!check_params(__FUNCTION__, 1, params))
 			return 0;
 
-		const auto iter_amx = std::find_if(_amx_list.begin(), _amx_list.end(), [amx](const AmxInfo &info)
+		const auto iter_amx = std::find_if(_amx_list.begin(), _amx_list.end(), [amx](const AmxList::value_type &item)
 		{
-			return info.amx == amx;
+			return item.amx == amx;
 		});
 
 		if (iter_amx == _amx_list.end())
@@ -432,9 +446,9 @@ private:
 		if (!check_params(__FUNCTION__, 2, params))
 			return 0;
 
-		const auto iter_amx = std::find_if(_amx_list.begin(), _amx_list.end(), [amx](const AmxInfo &info)
+		const auto iter_amx = std::find_if(_amx_list.begin(), _amx_list.end(), [amx](const AmxList::value_type &item)
 		{
-			return info.amx == amx;
+			return item.amx == amx;
 		});
 
 		if (iter_amx == _amx_list.end())
@@ -478,9 +492,9 @@ private:
 		if (!check_params(__FUNCTION__, 1, params))
 			return 0;
 
-		const auto iter_amx = std::find_if(_amx_list.begin(), _amx_list.end(), [amx](const AmxInfo &info)
+		const auto iter_amx = std::find_if(_amx_list.begin(), _amx_list.end(), [amx](const AmxList::value_type &item)
 		{
-			return info.amx == amx;
+			return item.amx == amx;
 		});
 
 		if (iter_amx == _amx_list.end())
@@ -507,9 +521,9 @@ private:
 		if (!check_params(__FUNCTION__, 1, params))
 			return 0;
 
-		const auto iter_amx = std::find_if(_amx_list.begin(), _amx_list.end(), [amx](const AmxInfo &info)
+		const auto iter_amx = std::find_if(_amx_list.begin(), _amx_list.end(), [amx](const AmxList::value_type &item)
 		{
-			return info.amx == amx;
+			return item.amx == amx;
 		});
 
 		if (iter_amx == _amx_list.end())
@@ -540,9 +554,9 @@ private:
 		if (!check_params(__FUNCTION__, 0, params))
 			return 0;
 
-		const auto iter_amx = std::find_if(_amx_list.begin(), _amx_list.end(), [amx](const AmxInfo &info)
+		const auto iter_amx = std::find_if(_amx_list.begin(), _amx_list.end(), [amx](const AmxList::value_type &item)
 		{
-			return info.amx == amx;
+			return item.amx == amx;
 		});
 
 		if (iter_amx == _amx_list.end())
@@ -569,9 +583,9 @@ private:
 		if (!check_params(__FUNCTION__, 1, params))
 			return 0;
 
-		const auto iter_amx = std::find_if(_amx_list.begin(), _amx_list.end(), [amx](const AmxInfo &info)
+		const auto iter_amx = std::find_if(_amx_list.begin(), _amx_list.end(), [amx](const AmxList::value_type &item)
 		{
-			return info.amx == amx;
+			return item.amx == amx;
 		});
 
 		if (iter_amx == _amx_list.end())
@@ -743,7 +757,7 @@ private:
 				amx_Release(iter.amx, addr_params);
 
 				if (!retval)
-					break;
+					continue;
 			}
 
 			if (command_exists)
@@ -787,16 +801,18 @@ private:
 
 	static inline void str_to_lower(std::string &str)
 	{
-		for (auto &c : str)	c = tolower(c, _locale);
+		for (auto &c : str)
+			c = tolower(c, _locale);
 	}
 
 	static inline char *get_string(AMX *amx, cell amx_addr)
 	{
 		int	len{};
+
 		cell *addr{};
 
-		if (!amx_GetAddr(amx, amx_addr, &addr) &&
-			!amx_StrLen(addr, &len) &&
+		if ((amx_GetAddr(amx, amx_addr, &addr) == AMX_ERR_NONE) &&
+			(amx_StrLen(addr, &len) == AMX_ERR_NONE) &&
 			len)
 		{
 			len++;
@@ -809,6 +825,21 @@ private:
 		}
 
 		return nullptr;
+	}
+
+	static inline bool get_public_var(AMX *amx, const char *name, cell &out)
+	{
+		cell addr{}, *phys_addr{};
+
+		if ((amx_FindPubVar(amx, name, &addr) == AMX_ERR_NONE) &&
+			(amx_GetAddr(amx, addr, &phys_addr) == AMX_ERR_NONE))
+		{
+			out = *phys_addr;
+
+			return true;
+		}
+
+		return false;
 	}
 
 	static inline int set_amxstring(AMX *amx, cell amx_addr, const char *source, int max)
@@ -837,8 +868,8 @@ private:
 	static AmxList
 		_amx_list;
 
-	static std::deque<AMX *>
-		_amx_init_deque;
+	static AmxQueue
+		_amx_init_queue;
 
 	static CmdArraySet
 		_cmd_array_set;
@@ -858,8 +889,8 @@ private:
 Plugin::AmxList
 Plugin::_amx_list;
 
-std::deque<AMX *>
-Plugin::_amx_init_deque;
+Plugin::AmxQueue
+Plugin::_amx_init_queue;
 
 Plugin::CmdArraySet
 Plugin::_cmd_array_set;
