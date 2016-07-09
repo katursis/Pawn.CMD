@@ -1,7 +1,7 @@
 # Pawn.CMD
 The fastest and most functional command processor (SA:MP)
 ## Comparison
-![alt tag](http://i.imgur.com/v43AinV.png)
+![alt tag](http://i.imgur.com/sVY9GBd.png)
 ## Natives
 ```pawn
 native PC_RegAlias(const cmd[], const alias[], ...);
