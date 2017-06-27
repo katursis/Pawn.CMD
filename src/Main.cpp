@@ -164,8 +164,9 @@ public:
 
 		_amx_list.clear();
 
-		while (!_amx_init_queue.empty())
+		while (!_amx_init_queue.empty()) {
 			_amx_init_queue.pop();
+		}
 
 		_cmd_array_set.clear();
 
