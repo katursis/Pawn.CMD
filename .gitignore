@@ -2,3 +2,5 @@
 .vscode/
 Release/
 Debug/
+*.so
+*.gch
