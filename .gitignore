@@ -4,3 +4,4 @@ Release/
 Debug/
 *.so
 *.gch
+.DS_Store
