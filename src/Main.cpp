@@ -128,6 +128,8 @@ public:
 	};
 
 	static bool Load(void) {
+		std::locale::global(_locale);
+
 		m::sig_scanner scanner;
 
 		if (scanner.init(reinterpret_cast<void *>(logprintf))) {
@@ -758,7 +760,7 @@ private:
 				return;
 			}
 
-			cmd[i] = tolower(c, _locale);
+			cmd[i] = std::tolower(c, _locale);
 
 			i++;
 		}
@@ -832,7 +834,7 @@ private:
 
 	static inline void str_to_lower(std::string &str) {
 		for (auto &c : str) {
-			c = tolower(c, _locale);
+			c = std::tolower(c, _locale);
 		}
 	}
 
