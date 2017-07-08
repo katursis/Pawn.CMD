@@ -166,19 +166,19 @@ public:
 	static void AmxLoad(AMX *amx) {
 		static const std::vector<AMX_NATIVE_INFO> native_vec =
 		{
-			{"PC_RegAlias", &n_PC_RegAlias},
-			{"PC_SetFlags", &n_PC_SetFlags},
-			{"PC_GetFlags", &n_PC_GetFlags},
-			{"PC_EmulateCommand", &n_PC_EmulateCommand},
-			{"PC_RenameCommand", &n_PC_RenameCommand},
-			{"PC_CommandExists", &n_PC_CommandExists},
-			{"PC_DeleteCommand", &n_PC_DeleteCommand},
+			{ "PC_RegAlias", &n_PC_RegAlias },
+			{ "PC_SetFlags", &n_PC_SetFlags },
+			{ "PC_GetFlags", &n_PC_GetFlags },
+			{ "PC_EmulateCommand", &n_PC_EmulateCommand },
+			{ "PC_RenameCommand", &n_PC_RenameCommand },
+			{ "PC_CommandExists", &n_PC_CommandExists },
+			{ "PC_DeleteCommand", &n_PC_DeleteCommand },
 
-			{"PC_GetCommandArray", &n_PC_GetCommandArray},
-			{"PC_GetAliasArray", &n_PC_GetAliasArray},
-			{"PC_GetArraySize", &n_PC_GetArraySize},
-			{"PC_FreeArray", &n_PC_FreeArray},
-			{"PC_GetCommandName", &n_PC_GetCommandName},
+			{ "PC_GetCommandArray", &n_PC_GetCommandArray },
+			{ "PC_GetAliasArray", &n_PC_GetAliasArray },
+			{ "PC_GetArraySize", &n_PC_GetArraySize },
+			{ "PC_FreeArray", &n_PC_FreeArray },
+			{ "PC_GetCommandName", &n_PC_GetCommandName },
 		};
 
 		cell include_version{}, is_gamemode{};
@@ -189,7 +189,7 @@ public:
 				return logprintf("[%s] %s: .inc-file version does not equal the plugin's version", kName, __FUNCTION__);
 			}
 
-			_amx_init_queue.emplace(AmxQueueItem{amx, is_gamemode == 1});
+			_amx_init_queue.emplace(AmxQueueItem{ amx, is_gamemode == 1 });
 		}
 
 		amx_Register(amx, native_vec.data(), native_vec.size());
@@ -219,7 +219,7 @@ public:
 
 			std::deque<int> alias_and_flags_public_ids;
 
-			AmxListItem list_item{amx};
+			AmxListItem list_item{ amx };
 
 			for (int i{}; i < num_publics; i++) {
 				char public_name[32]{};
@@ -235,17 +235,17 @@ public:
 
 					str_to_lower(cmd_name);
 
-					list_item.cmd_map.emplace(std::move(cmd_name), CommandMapItem{i, 0, false});
+					list_item.cmd_map.emplace(std::move(cmd_name), CommandMapItem{ i, 0, false });
 				} else if (std::regex_match(s, _regex_public_cmd_alias)) {
 					alias_and_flags_public_ids.push_back(i);
 				} else if (std::regex_match(s, _regex_public_cmd_flags)) {
 					alias_and_flags_public_ids.push_front(i);
 				} else if (s == "OnPlayerCommandReceived") {
-					list_item.public_on_player_command_received = {true, i};
+					list_item.public_on_player_command_received = { true, i };
 				} else if (s == "OnPlayerCommandPerformed") {
-					list_item.public_on_player_command_performed = {true, i};
+					list_item.public_on_player_command_performed = { true, i };
 				} else if (s == "PC_OnInit") {
-					list_item.public_on_init = {true, i};
+					list_item.public_on_init = { true, i };
 				}
 			}
 
@@ -326,7 +326,7 @@ private:
 					continue;
 				}
 
-				iter_amx->cmd_map.emplace(std::move(s), CommandMapItem{original_id, original_flags, true});
+				iter_amx->cmd_map.emplace(std::move(s), CommandMapItem{ original_id, original_flags, true });
 			}
 		}
 
