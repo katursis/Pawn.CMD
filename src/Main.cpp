@@ -89,7 +89,7 @@ class Plugin {
 public:
 	static constexpr char
 		*kName = "Pawn.CMD",
-		*kVersion = "3.1.2",
+		*kVersion = "3.1.3",
 		*kPublicVarNameVersion = "_pawncmd_version",
 		*kPublicVarNameIsGamemode = "_pawncmd_is_gamemode";
 
@@ -166,8 +166,7 @@ public:
 	}
 
 	static void AmxLoad(AMX *amx) {
-		static const std::vector<AMX_NATIVE_INFO> native_vec =
-		{
+		const std::vector<AMX_NATIVE_INFO> native_vec{
 			{ "PC_RegAlias", &n_PC_RegAlias },
 			{ "PC_SetFlags", &n_PC_SetFlags },
 			{ "PC_GetFlags", &n_PC_GetFlags },
@@ -270,7 +269,6 @@ public:
 	}
 
 private:
-
 	// native PC_RegAlias(const cmd[], const alias[], ...);
 	static cell AMX_NATIVE_CALL n_PC_RegAlias(AMX *amx, cell *params) {
 		if (params[0] < (2 * sizeof(cell))) {
