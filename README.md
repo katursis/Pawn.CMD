@@ -25,10 +25,10 @@ forward OnPlayerCommandReceived(playerid, cmd[], params[], flags); // calls befo
 forward OnPlayerCommandPerformed(playerid, cmd[], params[], result, flags); // calls after a command 
 ```
 ## How to install
-Unzip "pawncmd.zip" in your server's folder. Edit "server.cfg":
+Extract archive in your server's folder. Edit "server.cfg":
 - Windows
 ```
-plugins pawncmd
+plugins pawncmd.dll
 ```
 - Linux
 ```
@@ -78,8 +78,10 @@ cmd:ban(playerid, params[])
 public OnPlayerCommandReceived(playerid, cmd[], params[], flags)
 {
     if ((flags & CMD_ADMIN) && !pAdmin[playerid])
+    {
         return 0;
-
+    }
+    
     return 1;
 }
 ```
@@ -105,8 +107,10 @@ alias:ban("block");
 public OnPlayerCommandReceived(playerid, cmd[], params[], flags)
 {
     if ((flags & CMD_ADMIN) && !pAdmin[playerid])
+    {
         return 0;
-
+    }
+    
     return 1;
 }
 
@@ -115,6 +119,7 @@ public OnPlayerCommandPerformed(playerid, cmd[], params[], result, flags)
     if(result == -1)
     {
         SendClientMessage(playerid, 0xFFFFFFFF, "SERVER: Unknown command.");
+	
         return 0;
     }
 
