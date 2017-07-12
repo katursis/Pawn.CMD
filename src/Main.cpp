@@ -25,7 +25,7 @@
 #include "SDK/amx/amx.h"
 #include "SDK/plugincommon.h"
 
-#include "urmem.hpp"
+#include "urmem/urmem.hpp"
 
 #include <unordered_map>
 #include <unordered_set>
