@@ -5,3 +5,5 @@ Debug/
 *.so
 *.gch
 .DS_Store
+.user
+
