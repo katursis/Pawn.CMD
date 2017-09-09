@@ -120,7 +120,8 @@ public:
         struct {
             bool exists;
             int id;
-        }	public_on_player_command_received,
+        }   public_on_player_command_text,
+            public_on_player_command_received,
             public_on_player_command_performed,
             public_on_init;
 
@@ -241,6 +242,8 @@ public:
                     alias_and_flags_public_ids.push_back(i);
                 } else if (std::regex_match(s, _regex_public_cmd_flags)) {
                     alias_and_flags_public_ids.push_front(i);
+                } else if (s == "OnPlayerCommandText") {
+                    list_item.public_on_player_command_text = { true, i };
                 } else if (s == "OnPlayerCommandReceived") {
                     list_item.public_on_player_command_received = { true, i };
                 } else if (s == "OnPlayerCommandPerformed") {
@@ -770,12 +773,23 @@ private:
         params = &params[i];
 
         CommandMap::const_iterator iter_cmd{};
-        cell addr_cmd{}, addr_params{}, retval{}, flags{};
+        cell addr_cmdtext{}, addr_cmd{}, addr_params{}, retval{}, flags{};
         bool command_exists{};
 
         for (const auto &iter : _amx_list) {
             if (command_exists = ((iter_cmd = iter.cmd_map.find(cmd)) != iter.cmd_map.end())) {
                 flags = iter_cmd->second.flags;
+            }
+
+            if (iter.public_on_player_command_text.exists) {
+                amx_PushString(iter.amx, &addr_cmdtext, nullptr, cmdtext, 0, 0);
+                amx_Push(iter.amx, playerid);
+                amx_Exec(iter.amx, &retval, iter.public_on_player_command_text.id);
+                amx_Release(iter.amx, addr_cmdtext);
+
+                if (retval == 1) {
+                    break;
+                }
             }
 
             if (iter.public_on_player_command_received.exists) {
