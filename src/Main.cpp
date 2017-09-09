@@ -89,7 +89,7 @@ class Plugin {
 public:
     static constexpr char
         *kName = "Pawn.CMD",
-        *kVersion = "3.1.3",
+        *kVersion = "3.1.4",
         *kPublicVarNameVersion = "_pawncmd_version",
         *kPublicVarNameIsGamemode = "_pawncmd_is_gamemode";
 

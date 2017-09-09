@@ -25,7 +25,7 @@
 #if !defined PAWNCMD_INC_
 	#define PAWNCMD_INC_
 	
-	#define PAWNCMD_INCLUDE_VERSION 313
+	#define PAWNCMD_INCLUDE_VERSION 314
 
 	#if !defined __cplusplus
 		public _pawncmd_version = PAWNCMD_INCLUDE_VERSION;
