@@ -184,14 +184,22 @@ public:
         };
 
         cell include_version{}, is_gamemode{};
+        int index{};
 
-        if (get_public_var(amx, kPublicVarNameVersion, include_version) &&
-            get_public_var(amx, kPublicVarNameIsGamemode, is_gamemode)) {
+        if (
+            get_public_var(amx, kPublicVarNameVersion, include_version) &&
+            get_public_var(amx, kPublicVarNameIsGamemode, is_gamemode)
+            ) {
             if (include_version != PAWNCMD_INCLUDE_VERSION) {
                 return logprintf("[%s] %s: .inc-file version does not equal the plugin's version", kName, __FUNCTION__);
             }
 
             _amx_init_queue.emplace(AmxQueueItem{ amx, is_gamemode == 1 });
+        } else if (
+            amx_FindPublic(amx, "OnPlayerCommandText", &index) == AMX_ERR_NONE &&
+            index >= 0
+            ) {
+            _amx_init_queue.emplace(AmxQueueItem{ amx, false }); // guess it is legacy filterscript
         }
 
         amx_Register(amx, native_vec.data(), native_vec.size());
