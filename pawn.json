@@ -1,0 +1,22 @@
+{
+    "user": "urShadow",
+    "repo": "Pawn.CMD",
+    "include_path": "src",
+    "resources": [
+        {
+            "name": "^pawncmd-(.*)-linux.tar.gz$",
+            "platform": "linux",
+            "archive": true,
+            "plugins": ["pawncmd.so"]
+        },
+        {
+            "name": "^pawncmd-(.*)-win32.zip$",
+            "platform": "windows",
+            "archive": true,
+            "plugins": ["pawncmd.dll"]
+        }
+    ],
+    "runtime": {
+        "plugins": ["urShadow/pawncmd"]
+    }
+}
