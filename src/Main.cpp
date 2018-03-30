@@ -360,7 +360,7 @@ private:
             return 0;
         }
 
-        std::unique_ptr<char[]>	cmd(get_string(amx, params[1]));
+        std::unique_ptr<char[]> cmd(get_string(amx, params[1]));
 
         if (!cmd) {
             logprintf("[%s] %s: invalid cmd", kName, __FUNCTION__);
@@ -859,7 +859,7 @@ private:
     }
 
     static inline char *get_string(AMX *amx, cell amx_addr) {
-        int	len{};
+        int len{};
         cell *addr{};
 
         if (
