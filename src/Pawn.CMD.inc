@@ -88,5 +88,5 @@
             #define isnull(%0) \
                 ((!(%0[0])) || (((%0[0]) == '\1') && (!(%0[1]))))
         #endif
-    #endif
-#endif // PAWNCMD_INC_
+    #endif // !__cplusplus
+#endif // !PAWNCMD_INC_
