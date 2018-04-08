@@ -17,6 +17,6 @@
         }
     ],
     "runtime": {
-        "plugins": ["urShadow/pawncmd"]
+        "plugins": ["urShadow/Pawn.CMD"]
     }
 }
