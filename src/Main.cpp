@@ -908,6 +908,19 @@ private:
         return dest - start;
     }
 
+    static inline int AMXAPI amx_ExecByAddr(AMX *amx, cell *retval, cell addr) {
+        const auto hdr = reinterpret_cast<AMX_HEADER *>(amx->base);
+        const auto cip = hdr->cip;
+
+        hdr->cip = addr;
+
+        int result = amx_Exec(amx, retval, AMX_EXEC_MAIN);
+
+        hdr->cip = cip;
+
+        return result;
+    }
+
     static inline bool check_params(const char *native, int count, cell *params) {
         if (params[0] != (count * sizeof(cell))) {
             logprintf("[%s] %s: invalid number of parameters. Should be %d", kName, native, count);
