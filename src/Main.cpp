@@ -105,6 +105,16 @@ public:
     };
 
     struct Script {
+        Command &GetCommand(const std::string &name) {
+            const auto iter = cmds.find(name);
+
+            if (iter == cmds.end()) {
+                throw std::runtime_error{"command '" + name + "' not found"};
+            }
+
+            return iter->second;
+        }
+
         AMX *amx;
         cell opct_addr, opcr_addr, opcp_addr, on_init_addr;
         std::deque<cell> init_flags_and_aliases_addresses;
@@ -222,14 +232,20 @@ public:
 private:
     // native PC_Init();
     static cell AMX_NATIVE_CALL n_PC_Init(AMX *amx, cell *params) {
-        const auto &script = GetScript(amx);
+        try {
+            const auto &script = GetScript(amx);
 
-        for (auto addr : script.init_flags_and_aliases_addresses) {
-            ExecAmxPublic(amx, nullptr, addr);
-        }
+            for (auto addr : script.init_flags_and_aliases_addresses) {
+                ExecAmxPublic(amx, nullptr, addr);
+            }
 
-        if (script.on_init_addr) {
-            ExecAmxPublic(amx, nullptr, script.on_init_addr);
+            if (script.on_init_addr) {
+                ExecAmxPublic(amx, nullptr, script.on_init_addr);
+            }
+        } catch (const std::exception &e) {
+            _logprintf("[%s] %s: %s", kName, __FUNCTION__, e.what());
+
+            return 0;
         }
 
         return 1;
@@ -241,39 +257,34 @@ private:
             return 0;
         }
 
-        auto &script = GetScript(amx);
+        try {
+            auto &script = GetScript(amx);
 
-        Command command{};
-        for (size_t i = 1; i <= params[0] / sizeof(cell); ++i) {
-            auto cmd_name = GetAmxString(amx, params[i]);
-            StrToLower(cmd_name);
+            Command command{};
+            for (size_t i = 1; i <= params[0] / sizeof(cell); ++i) {
+                auto cmd_name = GetAmxString(amx, params[i]);
+                StrToLower(cmd_name);
 
-            const auto cmd_iterator = script.cmds.find(cmd_name);
+                if (i == 1) {
+                    command = script.GetCommand(cmd_name);
 
-            if (i == 1) {
-                if (cmd_iterator == script.cmds.end()) {
-                    _logprintf("[%s] %s: command '%s' not found", kName, __FUNCTION__, cmd_name.c_str());
+                    if (command.is_alias) {
+                        throw std::runtime_error{"command '" + cmd_name + "' is an alias"};
+                    }
 
-                    return 0;
+                    command.is_alias = true;
+                } else {
+                    if (script.cmds.count(cmd_name)) {
+                        throw std::runtime_error{"alias '" + cmd_name + "' is occupied"};
+                    }
+
+                    script.cmds[cmd_name] = command;
                 }
-
-                if (cmd_iterator->second.is_alias) {
-                    _logprintf("[%s] %s: command '%s' is an alias", kName, __FUNCTION__, cmd_name.c_str());
-
-                    return 0;
-                }
-
-                command = cmd_iterator->second;
-                command.is_alias = true;
-            } else {
-                if (cmd_iterator != script.cmds.end()) {
-                    _logprintf("[%s] %s: alias '%s' is occupied", kName, __FUNCTION__, cmd_name.c_str());
-
-                    continue;
-                }
-
-                script.cmds[cmd_name] = command;
             }
+        } catch (const std::exception &e) {
+            _logprintf("[%s] %s: %s", kName, __FUNCTION__, e.what());
+
+            return 0;
         }
 
         return 1;
@@ -285,26 +296,24 @@ private:
             return 0;
         }
 
-        auto &script = GetScript(amx);
+        try {
+            auto &script = GetScript(amx);
 
-        auto cmd_name = GetAmxString(amx, params[1]);
-        StrToLower(cmd_name);
+            auto cmd_name = GetAmxString(amx, params[1]);
+            StrToLower(cmd_name);
 
-        const auto cmd_iterator = script.cmds.find(cmd_name);
+            auto &command = script.GetCommand(cmd_name);
 
-        if (cmd_iterator == script.cmds.end()) {
-            _logprintf("[%s] %s: cmd '%s' not found", kName, __FUNCTION__, cmd_name.c_str());
+            if (command.is_alias) {
+                throw std::runtime_error{"command '" + cmd_name + "' is an alias"};
+            }
+
+            command.flags = params[2];
+        } catch (const std::exception &e) {
+            _logprintf("[%s] %s: %s", kName, __FUNCTION__, e.what());
 
             return 0;
         }
-
-        if (cmd_iterator->second.is_alias) {
-            _logprintf("[%s] %s: cmd '%s' is an alias", kName, __FUNCTION__, cmd_name.c_str());
-
-            return 0;
-        }
-
-        cmd_iterator->second.flags = static_cast<unsigned int>(params[2]);
 
         return 1;
     }
@@ -315,20 +324,18 @@ private:
             return 0;
         }
 
-        const auto &script = GetScript(amx);
+        try {
+            auto &script = GetScript(amx);
 
-        auto cmd_name = GetAmxString(amx, params[1]);
-        StrToLower(cmd_name);
+            auto cmd_name = GetAmxString(amx, params[1]);
+            StrToLower(cmd_name);
 
-        const auto cmd_iterator = script.cmds.find(cmd_name);
-
-        if (cmd_iterator == script.cmds.end()) {
-            _logprintf("[%s] %s: cmd '%s' not found", kName, __FUNCTION__, cmd_name.c_str());
-
-            return 0;
+            return script.GetCommand(cmd_name).flags;
+        } catch (const std::exception &e) {
+            _logprintf("[%s] %s: %s", kName, __FUNCTION__, e.what());
         }
 
-        return static_cast<cell>(cmd_iterator->second.flags);
+        return 0;
     }
 
     // native PC_EmulateCommand(playerid, const cmdtext[]);
@@ -337,7 +344,13 @@ private:
             return 0;
         }
 
-        ProcessCommand(params[1], GetAmxString(amx, params[2]).c_str());
+        try {
+            ProcessCommand(params[1], GetAmxString(amx, params[2]).c_str());
+        } catch (const std::exception &e) {
+            _logprintf("[%s] %s: %s", kName, __FUNCTION__, e.what());
+
+            return 0;
+        }
 
         return 1;
     }
@@ -348,31 +361,29 @@ private:
             return 0;
         }
 
-        auto &script = GetScript(amx);
+        try {
+            auto &script = GetScript(amx);
 
-        auto cmd_name = GetAmxString(amx, params[1]);
-        StrToLower(cmd_name);
+            auto cmd_name = GetAmxString(amx, params[1]);
+            StrToLower(cmd_name);
 
-        auto cmd_newname = GetAmxString(amx, params[2]);
-        StrToLower(cmd_newname);
+            auto cmd_newname = GetAmxString(amx, params[2]);
+            StrToLower(cmd_newname);
 
-        const auto cmd_iterator = script.cmds.find(cmd_name);
+            auto &command = script.GetCommand(cmd_name);
 
-        if (cmd_iterator == script.cmds.end()) {
-            _logprintf("[%s] %s: cmd '%s' not found", kName, __FUNCTION__, cmd_name.c_str());
+            if (script.cmds.count(cmd_newname)) {
+                throw std::runtime_error{"name '" + cmd_newname + "' is occupied"};
+            }
+
+            script.cmds[cmd_newname] = command;
+
+            script.cmds.erase(cmd_name);
+        } catch (const std::exception &e) {
+            _logprintf("[%s] %s: %s", kName, __FUNCTION__, e.what());
 
             return 0;
         }
-
-        if (script.cmds.find(cmd_newname) != script.cmds.end()) {
-            _logprintf("[%s] %s: name '%s' is occupied", kName, __FUNCTION__, cmd_newname.c_str());
-
-            return 0;
-        }
-
-        script.cmds[cmd_newname] = cmd_iterator->second;
-
-        script.cmds.erase(cmd_iterator);
 
         return 1;
     }
@@ -383,12 +394,18 @@ private:
             return 0;
         }
 
-        const auto &script = GetScript(amx);
+        try {
+            const auto &script = GetScript(amx);
 
-        auto cmd_name = GetAmxString(amx, params[1]);
-        StrToLower(cmd_name);
+            auto cmd_name = GetAmxString(amx, params[1]);
+            StrToLower(cmd_name);
 
-        return script.cmds.find(cmd_name) != script.cmds.end();
+            return script.cmds.count(cmd_name);
+        } catch (const std::exception &e) {
+            _logprintf("[%s] %s: %s", kName, __FUNCTION__, e.what());
+        }
+
+        return 0;
     }
 
     // native PC_DeleteCommand(const cmd[]);
@@ -397,41 +414,45 @@ private:
             return 0;
         }
 
-        auto &script = GetScript(amx);
+        try {
+            auto &script = GetScript(amx);
 
-        auto cmd_name = GetAmxString(amx, params[1]);
-        StrToLower(cmd_name);
+            auto cmd_name = GetAmxString(amx, params[1]);
+            StrToLower(cmd_name);
 
-        const auto cmd_iterator = script.cmds.find(cmd_name);
+            script.GetCommand(cmd_name);
 
-        if (cmd_iterator == script.cmds.end()) {
-            _logprintf("[%s] %s: cmd '%s' not found", kName, __FUNCTION__, cmd_name.c_str());
-
-            return 0;
+            return script.cmds.erase(cmd_name);
+        } catch (const std::exception &e) {
+            _logprintf("[%s] %s: %s", kName, __FUNCTION__, e.what());
         }
 
-        script.cmds.erase(cmd_iterator);
-
-        return 1;
+        return 0;
     }
 
     // native CmdArray:PC_GetCommandArray();
     static cell AMX_NATIVE_CALL n_PC_GetCommandArray(AMX *amx, cell *params) {
-        const auto &script = GetScript(amx);
+        try {
+            const auto &script = GetScript(amx);
 
-        const auto cmd_array = std::make_shared<CmdArray>();
+            const auto cmd_array = std::make_shared<CmdArray>();
 
-        for (const auto &cmd : script.cmds) {
-            if (cmd.second.is_alias) {
-                continue;
+            for (const auto &cmd : script.cmds) {
+                if (cmd.second.is_alias) {
+                    continue;
+                }
+
+                cmd_array->push_back(cmd.first);
             }
 
-            cmd_array->push_back(cmd.first);
+            _cmd_array_set.insert(cmd_array);
+
+            return reinterpret_cast<cell>(cmd_array.get());
+        } catch (const std::exception &e) {
+            _logprintf("[%s] %s: %s", kName, __FUNCTION__, e.what());
         }
 
-        _cmd_array_set.insert(cmd_array);
-
-        return reinterpret_cast<cell>(cmd_array.get());
+        return 0;
     }
 
     // native CmdArray:PC_GetAliasArray(const cmd[]);
@@ -440,43 +461,39 @@ private:
             return 0;
         }
 
-        const auto &script = GetScript(amx);
+        try {
+            auto &script = GetScript(amx);
 
-        auto cmd_name = GetAmxString(amx, params[1]);
-        StrToLower(cmd_name);
+            auto cmd_name = GetAmxString(amx, params[1]);
+            StrToLower(cmd_name);
 
-        const auto cmd_iterator = script.cmds.find(cmd_name);
+            auto &command = script.GetCommand(cmd_name);
 
-        if (cmd_iterator == script.cmds.end()) {
-            _logprintf("[%s] %s: cmd '%s' not found", kName, __FUNCTION__, cmd_name.c_str());
-
-            return 0;
-        }
-
-        if (cmd_iterator->second.is_alias) {
-            _logprintf("[%s] %s: cmd '%s' is an alias", kName, __FUNCTION__, cmd_name.c_str());
-
-            return 0;
-        }
-
-        const cell cmd_addr = cmd_iterator->second.addr;
-
-        const auto cmd_array = std::make_shared<CmdArray>();
-
-        for (const auto &cmd : script.cmds) {
-            if (
-                cmd.second.addr != cmd_addr
-                || !cmd.second.is_alias
-            ) {
-                continue;
+            if (command.is_alias) {
+                throw std::runtime_error{"command '" + cmd_name + "' is an alias"};
             }
 
-            cmd_array->push_back(cmd.first);
+            const auto cmd_array = std::make_shared<CmdArray>();
+
+            for (const auto &alias : script.cmds) {
+                if (
+                    alias.second.addr != command.addr
+                    || !alias.second.is_alias
+                ) {
+                    continue;
+                }
+
+                cmd_array->push_back(alias.first);
+            }
+
+            _cmd_array_set.insert(cmd_array);
+
+            return reinterpret_cast<cell>(cmd_array.get());
+        } catch (const std::exception &e) {
+            _logprintf("[%s] %s: %s", kName, __FUNCTION__, e.what());
         }
 
-        _cmd_array_set.insert(cmd_array);
-
-        return reinterpret_cast<cell>(cmd_array.get());
+        return 0;
     }
 
     // native PC_GetArraySize(CmdArray:arr);
@@ -485,15 +502,13 @@ private:
             return 0;
         }
 
-        const auto cmd_array = GetCmdArray(params[1]);
-
-        if (!cmd_array) {
-            _logprintf("[%s] %s: invalid array handle", kName, __FUNCTION__);
-
-            return 0;
+        try {
+            return GetCmdArray(params[1])->size();
+        } catch (const std::exception &e) {
+            _logprintf("[%s] %s: %s", kName, __FUNCTION__, e.what());
         }
 
-        return static_cast<cell>(cmd_array->size());
+        return 0;
     }
 
     // native PC_FreeArray(&CmdArray:arr);
@@ -502,27 +517,23 @@ private:
             return 0;
         }
 
-        cell *cptr{};
+        try {
+            cell *cptr{};
 
-        if (amx_GetAddr(amx, params[1], &cptr) != AMX_ERR_NONE) {
-            _logprintf("[%s] %s: invalid param reference", kName, __FUNCTION__);
+            if (amx_GetAddr(amx, params[1], &cptr) != AMX_ERR_NONE) {
+                throw std::runtime_error{"invalid param reference"};
+            }
 
-            return 0;
+            _cmd_array_set.erase(GetCmdArray(*cptr));
+
+            *cptr = 0;
+
+            return 1;
+        } catch (const std::exception &e) {
+            _logprintf("[%s] %s: %s", kName, __FUNCTION__, e.what());
         }
 
-        const auto cmd_array = GetCmdArray(*cptr);
-
-        if (!cmd_array) {
-            _logprintf("[%s] %s: invalid array handle", kName, __FUNCTION__);
-
-            return 0;
-        }
-
-        _cmd_array_set.erase(cmd_array);
-
-        *cptr = 0;
-
-        return 1;
+        return 0;
     }
 
     // native PC_GetCommandName(CmdArray:arr, index, name[], size = sizeof name);
@@ -533,12 +544,6 @@ private:
 
         try {
             const auto cmd_array = GetCmdArray(params[1]);
-
-            if (!cmd_array) {
-                _logprintf("[%s] %s: invalid array handle", kName, __FUNCTION__);
-
-                return 0;
-            }
 
             const auto index = static_cast<size_t>(params[2]);
 
@@ -660,11 +665,11 @@ private:
             return reinterpret_cast<cell>(p.get()) == ptr;
         });
 
-        if (iter != _cmd_array_set.end()) {
-            return *iter;
+        if (iter == _cmd_array_set.end()) {
+            throw std::runtime_error{"invalid array handle"};
         }
 
-        return nullptr;
+        return *iter;
     }
 
     static inline ScriptList::value_type &GetScript(AMX *amx) {
