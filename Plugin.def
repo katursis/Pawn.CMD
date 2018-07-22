@@ -4,4 +4,3 @@ EXPORTS
 	Unload
 	AmxLoad
 	AmxUnload
-	ProcessTick

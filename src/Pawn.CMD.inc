@@ -34,6 +34,8 @@
         public bool:_pawncmd_is_gamemode = !defined FILTERSCRIPT;
         #pragma unused _pawncmd_is_gamemode
 
+        native PC_Init(); // internal
+
         native PC_RegAlias(const cmd[], const alias[], ...);
         native PC_SetFlags(const cmd[], flags);
         native PC_GetFlags(const cmd[]);
@@ -75,7 +77,6 @@
                 PC_SetFlags(#%0, %1);
 
         #define CMD cmd
-
         #define COMMAND cmd
 
         #define callcmd::%0(%1) \
@@ -87,6 +88,54 @@
         #if !defined isnull
             #define isnull(%0) \
                 ((!(%0[0])) || (((%0[0]) == '\1') && (!(%0[1]))))
+        #endif
+
+        #if defined FILTERSCRIPT
+            public OnFilterScriptInit()
+            {
+                PC_Init();
+
+                #if defined PawnCmd_OnFilterScriptInit
+                    PawnCmd_OnFilterScriptInit();
+                #endif
+
+                return 1;
+            }
+
+            #if defined _ALS_OnFilterScriptInit
+                #undef OnFilterScriptInit
+            #else
+                #define _ALS_OnFilterScriptInit
+            #endif
+
+            #define OnFilterScriptInit PawnCmd_OnFilterScriptInit
+
+            #if defined PawnCmd_OnFilterScriptInit
+                forward PawnCmd_OnFilterScriptInit();
+            #endif
+        #else
+            public OnGameModeInit()
+            {
+                PC_Init();
+
+                #if defined PawnCmd_OnGameModeInit
+                    PawnCmd_OnGameModeInit();
+                #endif
+
+                return 1;
+            }
+
+            #if defined _ALS_OnGameModeInit
+                #undef OnGameModeInit
+            #else
+                #define _ALS_OnGameModeInit
+            #endif
+
+            #define OnGameModeInit PawnCmd_OnGameModeInit
+
+            #if defined PawnCmd_OnGameModeInit
+                forward PawnCmd_OnGameModeInit();
+            #endif
         #endif
     #endif // !__cplusplus
 #endif // !PAWNCMD_INC_
