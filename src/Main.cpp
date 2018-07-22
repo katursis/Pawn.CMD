@@ -417,10 +417,6 @@ private:
 
     // native CmdArray:PC_GetCommandArray();
     static cell AMX_NATIVE_CALL n_PC_GetCommandArray(AMX *amx, cell *params) {
-        if (!CheckParams(__FUNCTION__, 0, params)) {
-            return 0;
-        }
-
         const auto &script = GetScript(amx);
 
         const auto cmd_array = std::make_shared<CmdArray>();
