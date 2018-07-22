@@ -231,6 +231,8 @@ private:
         if (script.on_init_addr) {
             ExecAmxPublic(amx, nullptr, script.on_init_addr);
         }
+
+        return 1;
     }
 
     // native PC_RegAlias(const cmd[], const alias[], ...);
@@ -720,7 +722,7 @@ private:
             }
         }
 
-        throw std::runtime_error{"string not found"};
+        return {};
     }
 
     static inline bool GetAmxPublicVar(AMX *amx, const char *name, cell &out) {
