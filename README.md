@@ -20,9 +20,9 @@ native PC_GetCommandName(CmdArray:arr, index, dest[], size = sizeof dest);
 ```
 ## Callbacks
 ```pawn
-forward PC_OnInit(); // calls after Pawn.CMD initialization
-forward OnPlayerCommandReceived(playerid, cmd[], params[], flags); // calls before a command 
-forward OnPlayerCommandPerformed(playerid, cmd[], params[], result, flags); // calls after a command 
+forward PC_OnInit();
+forward OnPlayerCommandReceived(playerid, cmd[], params[], flags);
+forward OnPlayerCommandPerformed(playerid, cmd[], params[], result, flags);
 ```
 ## How to install
 Extract archive in server folder. Update your server.cfg
