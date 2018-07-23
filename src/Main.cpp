@@ -53,7 +53,7 @@ class Plugin {
 public:
     static constexpr char
         *kName = "Pawn.CMD",
-        *kVersion = "3.1.4",
+        *kVersion = "3.2.0",
         *kPublicVarNameVersion = "_pawncmd_version",
         *kPublicVarNameIsGamemode = "_pawncmd_is_gamemode",
 #ifdef _WIN32
