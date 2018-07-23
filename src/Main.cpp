@@ -141,7 +141,7 @@ public:
             }
         }
 
-        _logprintf("[%s] %s: address not found", kName, __FUNCTION__);
+        _logprintf("[%s] %s: CFilterScripts::OnPlayerCommandText not found", kName, __FUNCTION__);
 
         return false;
     }
@@ -179,7 +179,7 @@ public:
             && GetAmxPublicVar(amx, kPublicVarNameIsGamemode, is_gamemode)
         ) {
             if (include_version != PAWNCMD_INCLUDE_VERSION) {
-                _logprintf("[%s] %s: .inc-file version does not equal the plugin's version", kName, __FUNCTION__);
+                _logprintf("[%s] %s: mismatch between the plugin and include versions", kName, __FUNCTION__);
             }
         }
 
@@ -583,7 +583,6 @@ private:
         CommandMap::const_iterator iter_cmd{};
         cell addr_cmdtext{}, addr_cmd_name{}, addr_params{}, retval{}, flags{};
         bool command_exists{};
-
         for (const auto &script : _scripts) {
             if (script.opct_addr) {
                 amx_PushString(script.amx, &addr_cmdtext, nullptr, cmdtext, 0, 0);
