@@ -57,7 +57,7 @@ cmd:help(playerid, params[])
 alias:help("commands", "cmds"); // case insensitive  
 ```
 ## Using flags
-You can set flags for a command.
+You can set flags for a command
 ```pawn
 #include <Pawn.CMD>
 
