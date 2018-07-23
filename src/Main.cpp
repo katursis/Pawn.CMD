@@ -253,11 +253,11 @@ private:
 
     // native PC_RegAlias(const cmd[], const alias[], ...);
     static cell AMX_NATIVE_CALL n_PC_RegAlias(AMX *amx, cell *params) {
-        if (params[0] < (2 * sizeof(cell))) {
-            return 0;
-        }
-
         try {
+            if (params[0] < (2 * sizeof(cell))) {
+                throw std::runtime_error{"number of parameters must not be less than 2"};
+            }
+
             auto &script = GetScript(amx);
 
             Command command{};
@@ -292,11 +292,9 @@ private:
 
     // native PC_SetFlags(const cmd[], flags);
     static cell AMX_NATIVE_CALL n_PC_SetFlags(AMX *amx, cell *params) {
-        if (!CheckParams(__FUNCTION__, 2, params)) {
-            return 0;
-        }
-
         try {
+            AssertParams(2, params);
+
             auto &script = GetScript(amx);
 
             auto cmd_name = GetAmxString(amx, params[1]);
@@ -320,11 +318,9 @@ private:
 
     // native PC_GetFlags(const cmd[]);
     static cell AMX_NATIVE_CALL n_PC_GetFlags(AMX *amx, cell *params) {
-        if (!CheckParams(__FUNCTION__, 1, params)) {
-            return 0;
-        }
-
         try {
+            AssertParams(1, params);
+
             auto &script = GetScript(amx);
 
             auto cmd_name = GetAmxString(amx, params[1]);
@@ -340,11 +336,9 @@ private:
 
     // native PC_EmulateCommand(playerid, const cmdtext[]);
     static cell AMX_NATIVE_CALL n_PC_EmulateCommand(AMX *amx, cell *params) {
-        if (!CheckParams(__FUNCTION__, 2, params)) {
-            return 0;
-        }
-
         try {
+            AssertParams(2, params);
+
             ProcessCommand(params[1], GetAmxString(amx, params[2]).c_str());
         } catch (const std::exception &e) {
             _logprintf("[%s] %s: %s", kName, __FUNCTION__, e.what());
@@ -357,11 +351,9 @@ private:
 
     // native PC_RenameCommand(const cmd[], const newname[]);
     static cell AMX_NATIVE_CALL n_PC_RenameCommand(AMX *amx, cell *params) {
-        if (!CheckParams(__FUNCTION__, 2, params)) {
-            return 0;
-        }
-
         try {
+            AssertParams(2, params);
+
             auto &script = GetScript(amx);
 
             auto cmd_name = GetAmxString(amx, params[1]);
@@ -390,11 +382,9 @@ private:
 
     // native PC_CommandExists(const cmd[]);
     static cell AMX_NATIVE_CALL n_PC_CommandExists(AMX *amx, cell *params) {
-        if (!CheckParams(__FUNCTION__, 1, params)) {
-            return 0;
-        }
-
         try {
+            AssertParams(1, params);
+
             const auto &script = GetScript(amx);
 
             auto cmd_name = GetAmxString(amx, params[1]);
@@ -410,11 +400,9 @@ private:
 
     // native PC_DeleteCommand(const cmd[]);
     static cell AMX_NATIVE_CALL n_PC_DeleteCommand(AMX *amx, cell *params) {
-        if (!CheckParams(__FUNCTION__, 1, params)) {
-            return 0;
-        }
-
         try {
+            AssertParams(1, params);
+
             auto &script = GetScript(amx);
 
             auto cmd_name = GetAmxString(amx, params[1]);
@@ -457,11 +445,9 @@ private:
 
     // native CmdArray:PC_GetAliasArray(const cmd[]);
     static cell AMX_NATIVE_CALL n_PC_GetAliasArray(AMX *amx, cell *params) {
-        if (!CheckParams(__FUNCTION__, 1, params)) {
-            return 0;
-        }
-
         try {
+            AssertParams(1, params);
+
             auto &script = GetScript(amx);
 
             auto cmd_name = GetAmxString(amx, params[1]);
@@ -498,11 +484,9 @@ private:
 
     // native PC_GetArraySize(CmdArray:arr);
     static cell AMX_NATIVE_CALL n_PC_GetArraySize(AMX *amx, cell *params) {
-        if (!CheckParams(__FUNCTION__, 1, params)) {
-            return 0;
-        }
-
         try {
+            AssertParams(1, params);
+
             return GetCmdArray(params[1])->size();
         } catch (const std::exception &e) {
             _logprintf("[%s] %s: %s", kName, __FUNCTION__, e.what());
@@ -513,11 +497,9 @@ private:
 
     // native PC_FreeArray(&CmdArray:arr);
     static cell AMX_NATIVE_CALL n_PC_FreeArray(AMX *amx, cell *params) {
-        if (!CheckParams(__FUNCTION__, 1, params)) {
-            return 0;
-        }
-
         try {
+            AssertParams(1, params);
+
             cell *cptr{};
 
             if (amx_GetAddr(amx, params[1], &cptr) != AMX_ERR_NONE) {
@@ -538,11 +520,9 @@ private:
 
     // native PC_GetCommandName(CmdArray:arr, index, name[], size = sizeof name);
     static cell AMX_NATIVE_CALL n_PC_GetCommandName(AMX *amx, cell *params) {
-        if (!CheckParams(__FUNCTION__, 4, params)) {
-            return 0;
-        }
-
         try {
+            AssertParams(4, params);
+
             const auto cmd_array = GetCmdArray(params[1]);
 
             const auto index = static_cast<size_t>(params[2]);
@@ -771,14 +751,10 @@ private:
         return public_name;
     }
 
-    static inline bool CheckParams(const char *native, int count, cell *params) {
+    static inline void AssertParams(int count, cell *params) {
         if (params[0] != (count * sizeof(cell))) {
-            _logprintf("[%s] %s: invalid number of parameters. Should be %d", kName, native, count);
-
-            return false;
+            throw std::runtime_error{"number of parameters must be equal to " + std::to_string(count)};
         }
-
-        return true;
     }
 
     static logprintf_t _logprintf;
