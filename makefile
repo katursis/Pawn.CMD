@@ -1,6 +1,6 @@
 OUTFILE = "pawncmd.so"
  
-COMPILE_FLAGS=-m32 -c -O3 -w -idirafter "lib"
+COMPILE_FLAGS=-m32 -c -O3 -w -Ilib
 LINK_FLAGS=-m32 -shared -O3 -static-libstdc++
 
 all:
