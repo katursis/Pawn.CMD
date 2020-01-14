@@ -617,6 +617,7 @@ private:
                 amx_PushString(script.amx, &addr_params, nullptr, params, 0, 0);
                 amx_Push(script.amx, playerid);
                 ExecAmxPublic(script.amx, &retval, iter_cmd->second.addr);
+                if(retval == 0) retval = -1;
                 amx_Release(script.amx, addr_params);
             } else {
                 retval = -1;
