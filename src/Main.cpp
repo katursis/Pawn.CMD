@@ -127,7 +127,7 @@ public:
         _logprintf = reinterpret_cast<logprintf_t>(ppData[PLUGIN_DATA_LOGPRINTF]);
 
         m::sig_scanner scanner;
-        if (scanner.init(reinterpret_cast<void *>(_logprintf))) {
+        if (scanner.init(reinterpret_cast<urmem::address_t>(_logprintf))) {
             m::address_t addr{};
             if (scanner.find(kOpctPattern, kOpctMask, addr)) {
                 _hook_fs__on_player_command_text = std::make_shared<m::hook>(
