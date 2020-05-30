@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2016-2018 urShadow
+ * Copyright (c) 2016-2020 urShadow
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,10 +25,11 @@
 #if !defined PAWNCMD_INC_
     #define PAWNCMD_INC_
 
-    #define PAWNCMD_INCLUDE_VERSION 320
+    #define PAWNCMD_VERSION 320
+    #define PAWNCMD_INCLUDE_VERSION PAWNCMD_VERSION // backward compatibility
 
     #if !defined __cplusplus
-        public _pawncmd_version = PAWNCMD_INCLUDE_VERSION;
+        public _pawncmd_version = PAWNCMD_VERSION;
         #pragma unused _pawncmd_version
 
         public bool:_pawncmd_is_gamemode = !defined FILTERSCRIPT;
@@ -39,7 +40,6 @@
         native PC_RegAlias(const cmd[], const alias[], ...);
         native PC_SetFlags(const cmd[], flags);
         native PC_GetFlags(const cmd[]);
-        native PC_EmulateCommand(playerid, const cmdtext[]);
         native PC_RenameCommand(const cmd[], const newname[]);
         native PC_CommandExists(const cmd[]);
         native PC_DeleteCommand(const cmd[]);
@@ -47,8 +47,10 @@
         native CmdArray:PC_GetCommandArray();
         native CmdArray:PC_GetAliasArray(const cmd[]);
         native PC_GetArraySize(CmdArray:arr);
-        native PC_FreeArray(&CmdArray:arr);
         native PC_GetCommandName(CmdArray:arr, index, dest[], size = sizeof dest);
+        native PC_FreeArray(&CmdArray:arr);
+
+        native PC_EmulateCommand(playerid, const cmdtext[]);
 
         #if defined PC_OnInit
             forward PC_OnInit();
@@ -66,12 +68,12 @@
             forward pc_cmd_%0(%1); \
             public pc_cmd_%0(%1)
 
-        #define alias:%0(%1); \
+        #define alias:%0(%1) \
             forward pc_alias_%0(); \
             public pc_alias_%0() \
                 PC_RegAlias(#%0, %1);
 
-        #define flags:%0(%1); \
+        #define flags:%0(%1) \
             forward pc_flags_%0(); \
             public pc_flags_%0() \
                 PC_SetFlags(#%0, %1);

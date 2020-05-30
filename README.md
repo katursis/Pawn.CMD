@@ -1,13 +1,12 @@
 # Pawn.CMD
-The fastest and most functional command processor (SA:MP)
-## Comparison
+🚀 The fastest command processor for SA:MP server
+## Comparison 2016 (probably outdated)
 ![alt tag](http://i.imgur.com/sVY9GBd.png)
 ## Natives
 ```pawn
 native PC_RegAlias(const cmd[], const alias[], ...);
 native PC_SetFlags(const cmd[], flags);
 native PC_GetFlags(const cmd[]);
-native PC_EmulateCommand(playerid, const cmdtext[]);
 native PC_RenameCommand(const cmd[], const newname[]);
 native PC_CommandExists(const cmd[]);
 native PC_DeleteCommand(const cmd[]);
@@ -15,8 +14,10 @@ native PC_DeleteCommand(const cmd[]);
 native CmdArray:PC_GetCommandArray();
 native CmdArray:PC_GetAliasArray(const cmd[]);
 native PC_GetArraySize(CmdArray:arr);
-native PC_FreeArray(&CmdArray:arr);
 native PC_GetCommandName(CmdArray:arr, index, dest[], size = sizeof dest);
+native PC_FreeArray(&CmdArray:arr);
+
+native PC_EmulateCommand(playerid, const cmdtext[]);
 ```
 ## Callbacks
 ```pawn
@@ -38,7 +39,7 @@ plugins pawncmd.so
 ```pawn
 #include <Pawn.CMD>
 
-cmd:help(playerid, params[]) // you can also use 'CMD' and 'COMMAND' instead of 'cmd'
+cmd:help(playerid, params[]) // you can also use 'CMD' or 'COMMAND' instead of 'cmd'
 {
     // code here
     return 1;
@@ -54,7 +55,7 @@ cmd:help(playerid, params[])
     // code here 
     return 1; 
 } 
-alias:help("commands", "cmds"); // case insensitive  
+alias:help("commands", "cmds") 
 ```
 ## Using flags
 You can set flags for a command
@@ -70,22 +71,22 @@ enum (<<= 1)
 
 new pPermissions[MAX_PLAYERS];
 
-flags:ban(CMD_ADMIN);
+flags:ban(CMD_ADMIN)
 cmd:ban(playerid, params[])
 {
     // code here
     return 1;
 }
-alias:ban("block");
+alias:ban("block")
 
-flags:kick(CMD_ADMIN | CMD_MODER);
+flags:kick(CMD_ADMIN | CMD_MODER)
 cmd:kick(playerid, params[])
 {
     // code here
     return 1;
 }
 
-flags:jail(CMD_ADMIN | CMD_MODER | CMD_JR_MODER);
+flags:jail(CMD_ADMIN | CMD_MODER | CMD_JR_MODER)
 cmd:jail(playerid, params[])
 {
     // code here
@@ -106,7 +107,7 @@ public OnPlayerCommandReceived(playerid, cmd[], params[], flags)
 
 public OnPlayerCommandPerformed(playerid, cmd[], params[], result, flags)
 {
-    if(result == -1)
+    if (result == -1)
     {
         SendClientMessage(playerid, 0xFFFFFFFF, "SERVER: Unknown command.");
 
