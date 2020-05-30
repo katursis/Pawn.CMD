@@ -35,6 +35,12 @@ plugins pawncmd.dll
 ```
 plugins pawncmd.so
 ```
+## Configuration (pawncmd.cfg in plugins folder)
+**The values in parentheses are default values**
+* CaseInsensitivity (**true**)
+* LegacyOpctSupport (**true**)
+* LocaleName (**""**)
+* UseCaching (**true**)
 ## Example command
 ```pawn
 #include <Pawn.CMD>
