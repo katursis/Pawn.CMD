@@ -192,9 +192,17 @@ void Script::InitFlagsAndAliases() {
 }
 
 void Script::PrepareCommandName(std::string &name) {
-  const auto &plugin = Plugin::Instance();
+  auto &plugin = Plugin::Instance();
 
   if (plugin.CaseInsensitivity()) {
+#ifdef _WIN32
+    try {  // hot fix "bad conversion" error
+      name = plugin.ToLower(name);
+    } catch (const std::exception &e) {
+      plugin.Log("%s: %s", __func__, e.what());
+    }
+#else
     name = plugin.ToLower(name);
+#endif
   }
 }
