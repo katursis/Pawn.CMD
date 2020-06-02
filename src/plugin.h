@@ -96,15 +96,21 @@ class Plugin : public ptl::AbstractPlugin<Plugin, Script, Cell> {
 
   bool UseCaching() const { return use_caching_; }
 
-  inline std::string ToLower(const std::string &str) const {
-    static std::wstring_convert<std::codecvt_utf8<wchar_t>> conv;
-    std::wstring ws = conv.from_bytes(str);
+  inline std::string ToLower(const std::string &str) {
+    try {
+      static std::wstring_convert<std::codecvt_utf8<wchar_t>> conv;
+      std::wstring ws = conv.from_bytes(str);
 
-    for (auto &c : ws) {
-      c = std::tolower(c, locale_);
+      for (auto &c : ws) {
+        c = std::tolower(c, locale_);
+      }
+
+      return conv.to_bytes(ws);
+    } catch (const std::exception &e) {
+      Log("%s: %s", __func__, e.what());
     }
 
-    return conv.to_bytes(ws);
+    return str;
   }
 
   void InstallHooks() {
