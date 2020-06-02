@@ -39,7 +39,7 @@ plugins pawncmd.so
 **The values in parentheses are default values**
 * CaseInsensitivity (**true**)
 * LegacyOpctSupport (**true**)
-* LocaleName (**""**)
+* LocaleName (**"C"**)
 * UseCaching (**true**)
 ## Example command
 ```pawn
