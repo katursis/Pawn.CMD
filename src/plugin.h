@@ -166,12 +166,12 @@ class Plugin : public ptl::AbstractPlugin<Plugin, Script, Cell> {
   const char *opct_pattern_ =
       "\x83\xEC\x08\x53\x8B\x5C\x24\x14\x55\x8B\x6C\x24\x14\x56\x33\xF6\x57"
       "\x8B\xF9\x89\x74\x24\x10\x8B\x04\xB7\x85\xC0";
-  const char *opct_mask_ = "?????xxxxxxxxxxxxxxxxxxxxxxx";
+  const char *opct_mask_ = "xxxxxxxxxxxxxxxxxxxxxxxxxxxx";
 #else
   const char *opct_pattern_ =
       "\x55\x89\xE5\x57\x56\x53\x83\xEC\x2C\x8B\x75\x08\xC7\x45\xE4\x00\x00"
       "\x00\x00\x8B\x7D\x10\x89\xF3\xEB\x14";
-  const char *opct_mask_ = "?????xxxxxxxxxxxxxxxxxxxxx";
+  const char *opct_mask_ = "xxxxxxxxxxxxxxxxxxxxxxxxxx";
 #endif
 
   const std::string config_path_ = "plugins/pawncmd.cfg";
