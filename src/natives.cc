@@ -37,8 +37,7 @@ cell natives::PC_RegAlias(Script *script, cell *params) {
 
   CommandPtr command{};
   for (std::size_t i = 1; i <= params[0] / sizeof(cell); i++) {
-    auto cmd_name = script->GetString(params[i]);
-    script->PrepareCommandName(cmd_name);
+    auto cmd_name = script->PrepareCommandName(script->GetString(params[i]));
 
     if (i == 1) {
       command = script->GetCommand(cmd_name, true);
@@ -53,7 +52,7 @@ cell natives::PC_RegAlias(Script *script, cell *params) {
 
 // native PC_SetFlags(const cmd[], flags);
 cell natives::PC_SetFlags(Script *script, std::string cmd_name, cell flags) {
-  script->PrepareCommandName(cmd_name);
+  cmd_name = script->PrepareCommandName(cmd_name);
 
   script->GetCommand(cmd_name, true)->SetFlags(flags);
 
@@ -62,7 +61,7 @@ cell natives::PC_SetFlags(Script *script, std::string cmd_name, cell flags) {
 
 // native PC_GetFlags(const cmd[]);
 cell natives::PC_GetFlags(Script *script, std::string cmd_name) {
-  script->PrepareCommandName(cmd_name);
+  cmd_name = script->PrepareCommandName(cmd_name);
 
   return script->GetCommand(cmd_name)->GetFlags();
 }
@@ -70,8 +69,8 @@ cell natives::PC_GetFlags(Script *script, std::string cmd_name) {
 // native PC_RenameCommand(const cmd[], const newname[]);
 cell natives::PC_RenameCommand(Script *script, std::string cmd_name,
                                std::string cmd_newname) {
-  script->PrepareCommandName(cmd_name);
-  script->PrepareCommandName(cmd_newname);
+  cmd_name = script->PrepareCommandName(cmd_name);
+  cmd_newname = script->PrepareCommandName(cmd_newname);
 
   const auto &command = script->GetCommand(cmd_name);
 
@@ -85,14 +84,14 @@ cell natives::PC_RenameCommand(Script *script, std::string cmd_name,
 
 // native PC_CommandExists(const cmd[]);
 cell natives::PC_CommandExists(Script *script, std::string cmd_name) {
-  script->PrepareCommandName(cmd_name);
+  cmd_name = script->PrepareCommandName(cmd_name);
 
   return script->CommandExists(cmd_name);
 }
 
 // native PC_DeleteCommand(const cmd[]);
 cell natives::PC_DeleteCommand(Script *script, std::string cmd_name) {
-  script->PrepareCommandName(cmd_name);
+  cmd_name = script->PrepareCommandName(cmd_name);
 
   script->GetCommand(cmd_name);
 
@@ -106,7 +105,7 @@ cell natives::PC_GetCommandArray(Script *script) {
 
 // native CmdArray:PC_GetAliasArray(const cmd[]);
 cell natives::PC_GetAliasArray(Script *script, std::string cmd_name) {
-  script->PrepareCommandName(cmd_name);
+  cmd_name = script->PrepareCommandName(cmd_name);
 
   return script->NewAliasArray(cmd_name);
 }

@@ -34,8 +34,7 @@ bool Script::OnLoad() {
     std::string public_name = GetPublicName(index);
     std::smatch match;
     if (std::regex_match(public_name, match, regex_public_cmd_name_)) {
-      std::string cmd_name = match[1].str();
-      PrepareCommandName(cmd_name);
+      std::string cmd_name = PrepareCommandName(match[1].str());
 
       NewCommand(cmd_name, MakePublic(public_name, plugin.UseCaching()));
     } else if (std::regex_match(public_name, regex_public_cmd_alias_)) {
@@ -191,18 +190,12 @@ void Script::InitFlagsAndAliases() {
   }
 }
 
-void Script::PrepareCommandName(std::string &name) {
+std::string Script::PrepareCommandName(const std::string &name) {
   auto &plugin = Plugin::Instance();
 
   if (plugin.CaseInsensitivity()) {
-#ifdef _WIN32
-    try {  // hot fix "bad conversion" error
-      name = plugin.ToLower(name);
-    } catch (const std::exception &e) {
-      plugin.Log("%s: %s", __func__, e.what());
-    }
-#else
-    name = plugin.ToLower(name);
-#endif
+    return plugin.ToLower(name);
   }
+
+  return name;
 }

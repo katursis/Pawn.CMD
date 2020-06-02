@@ -80,7 +80,7 @@ class Script : public ptl::AbstractScript<Script> {
 
   void InitFlagsAndAliases();
 
-  static void PrepareCommandName(std::string &name);
+  static std::string PrepareCommandName(const std::string &name);
 
  private:
   const std::regex regex_public_cmd_name_{R"(pc_cmd_(\w+))"};
