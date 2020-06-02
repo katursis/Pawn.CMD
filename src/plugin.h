@@ -75,7 +75,7 @@ class Plugin : public ptl::AbstractPlugin<Plugin, Script, Cell> {
         config->get_as<bool>("LegacyOpctSupport").value_or(true);
     use_caching_ = config->get_as<bool>("UseCaching").value_or(true);
     locale_ =
-        std::locale{config->get_as<std::string>("LocaleName").value_or("")};
+        std::locale{config->get_as<std::string>("LocaleName").value_or("C")};
   }
 
   void SaveConfig() {
