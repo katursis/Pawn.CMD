@@ -97,11 +97,13 @@ class Plugin : public ptl::AbstractPlugin<Plugin, Script, Cell> {
   bool UseCaching() const { return use_caching_; }
 
   inline std::string ToLower(const std::string &str) {
-    auto result = str;
-
     try {
+      auto result = str;
+
       std::use_facet<std::ctype<char>>(locale_).tolower(
           &result.front(), &result.front() + result.size());
+
+      return result;
     } catch (const std::exception &e) {
       Log("%s (%s): %s", __func__, str.c_str(), e.what());
     }
