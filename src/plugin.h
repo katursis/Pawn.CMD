@@ -108,7 +108,7 @@ class Plugin : public ptl::AbstractPlugin<Plugin, Script, Cell> {
       Log("%s (%s): %s", __func__, str.c_str(), e.what());
     }
 
-    return result;
+    return str;
   }
 
   void InstallHooks() {
