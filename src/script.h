@@ -82,6 +82,45 @@ class Script : public ptl::AbstractScript<Script> {
 
   static std::string PrepareCommandName(const std::string &name);
 
+  // native PC_Init();
+  cell PC_Init();
+
+  // native PC_RegAlias(const cmd[], const alias[], ...);
+  cell PC_RegAlias(cell *params);
+
+  // native PC_SetFlags(const cmd[], flags);
+  cell PC_SetFlags(std::string cmd_name, cell flags);
+
+  // native PC_GetFlags(const cmd[]);
+  cell PC_GetFlags(std::string cmd_name);
+
+  // native PC_RenameCommand(const cmd[], const newname[]);
+  cell PC_RenameCommand(std::string cmd_name, std::string cmd_newname);
+
+  // native PC_CommandExists(const cmd[]);
+  cell PC_CommandExists(std::string cmd_name);
+
+  // native PC_DeleteCommand(const cmd[]);
+  cell PC_DeleteCommand(std::string cmd_name);
+
+  // native CmdArray:PC_GetCommandArray();
+  cell PC_GetCommandArray();
+
+  // native CmdArray:PC_GetAliasArray(const cmd[]);
+  cell PC_GetAliasArray(std::string cmd_name);
+
+  // native PC_GetArraySize(CmdArray:arr);
+  cell PC_GetArraySize(CmdArrayPtr arr);
+
+  // native PC_GetCommandName(CmdArray:arr, index, dest[], size = sizeof dest);
+  cell PC_GetCommandName(CmdArrayPtr arr, cell index, cell *dest, cell size);
+
+  // native PC_FreeArray(&CmdArray:arr);
+  cell PC_FreeArray(cell *arr);
+
+  // native PC_EmulateCommand(playerid, const cmdtext[]);
+  cell PC_EmulateCommand(cell playerid, std::string cmdtext);
+
  private:
   const std::regex regex_public_cmd_name_{R"(pc_cmd_(\w+))"};
   const std::regex regex_public_cmd_alias_{R"(pc_alias_\w+)"};

@@ -110,8 +110,7 @@ void Script::NewCommand(const std::string &name, const PublicPtr &pub,
   cmds_[name] = std::make_shared<Command>(pub, flags, is_alias);
 }
 
-const CommandPtr &Script::GetCommand(const std::string &name,
-                                     bool strict) {
+const CommandPtr &Script::GetCommand(const std::string &name, bool strict) {
   const auto &command = cmds_.at(name);
 
   if (strict && command->IsAlias()) {
@@ -198,4 +197,113 @@ std::string Script::PrepareCommandName(const std::string &name) {
   }
 
   return name;
+}
+
+// native PC_Init();
+cell Script::PC_Init() {
+  InitFlagsAndAliases();
+
+  return 1;
+}
+
+// native PC_RegAlias(const cmd[], const alias[], ...);
+cell Script::PC_RegAlias(cell *params) {
+  AssertMinParams(2, params);
+
+  CommandPtr command{};
+  for (std::size_t i = 1; i <= params[0] / sizeof(cell); i++) {
+    auto cmd_name = PrepareCommandName(GetString(params[i]));
+
+    if (i == 1) {
+      command = GetCommand(cmd_name, true);
+    } else {
+      NewCommand(cmd_name, command->GetPublic(), command->GetFlags(), true);
+    }
+  }
+
+  return 1;
+}
+
+// native PC_SetFlags(const cmd[], flags);
+cell Script::PC_SetFlags(std::string cmd_name, cell flags) {
+  cmd_name = PrepareCommandName(cmd_name);
+
+  GetCommand(cmd_name, true)->SetFlags(flags);
+
+  return 1;
+}
+
+// native PC_GetFlags(const cmd[]);
+cell Script::PC_GetFlags(std::string cmd_name) {
+  cmd_name = PrepareCommandName(cmd_name);
+
+  return GetCommand(cmd_name)->GetFlags();
+}
+
+// native PC_RenameCommand(const cmd[], const newname[]);
+cell Script::PC_RenameCommand(std::string cmd_name, std::string cmd_newname) {
+  cmd_name = PrepareCommandName(cmd_name);
+  cmd_newname = PrepareCommandName(cmd_newname);
+
+  const auto &command = GetCommand(cmd_name);
+
+  NewCommand(cmd_newname, command->GetPublic(), command->GetFlags(),
+             command->IsAlias());
+
+  DeleteCommand(cmd_name);
+
+  return 1;
+}
+
+// native PC_CommandExists(const cmd[]);
+cell Script::PC_CommandExists(std::string cmd_name) {
+  cmd_name = PrepareCommandName(cmd_name);
+
+  return CommandExists(cmd_name);
+}
+
+// native PC_DeleteCommand(const cmd[]);
+cell Script::PC_DeleteCommand(std::string cmd_name) {
+  cmd_name = PrepareCommandName(cmd_name);
+
+  GetCommand(cmd_name);
+
+  return DeleteCommand(cmd_name);
+}
+
+// native CmdArray:PC_GetCommandArray();
+cell Script::PC_GetCommandArray() { return NewCmdArray(); }
+
+// native CmdArray:PC_GetAliasArray(const cmd[]);
+cell Script::PC_GetAliasArray(std::string cmd_name) {
+  cmd_name = PrepareCommandName(cmd_name);
+
+  return NewAliasArray(cmd_name);
+}
+
+// native PC_GetArraySize(CmdArray:arr);
+cell Script::PC_GetArraySize(CmdArrayPtr arr) { return arr->size(); }
+
+// native PC_GetCommandName(CmdArray:arr, index, dest[], size = sizeof dest);
+cell Script::PC_GetCommandName(CmdArrayPtr arr, cell index, cell *dest,
+                               cell size) {
+  SetString(dest, arr->at(index), size);
+
+  return 1;
+}
+
+// native PC_FreeArray(&CmdArray:arr);
+cell Script::PC_FreeArray(cell *arr) {
+  DeleteArray(*arr);
+
+  *arr = 0;
+
+  return 1;
+}
+
+// native PC_EmulateCommand(playerid, const cmdtext[]);
+cell Script::PC_EmulateCommand(cell playerid, std::string cmdtext) {
+  Plugin::ProcessCommand(playerid, cmdtext.c_str());
+
+  return 1;
 }

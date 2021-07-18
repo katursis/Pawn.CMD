@@ -36,22 +36,22 @@ class Plugin : public ptl::AbstractPlugin<Plugin, Script, Cell> {
 
     InstallHooks();
 
-    RegisterNative<natives::PC_Init>("PC_Init");
+    RegisterNative<&Script::PC_Init>("PC_Init");
 
-    RegisterNative<natives::PC_RegAlias, false>("PC_RegAlias");
-    RegisterNative<natives::PC_SetFlags>("PC_SetFlags");
-    RegisterNative<natives::PC_GetFlags>("PC_GetFlags");
-    RegisterNative<natives::PC_RenameCommand>("PC_RenameCommand");
-    RegisterNative<natives::PC_CommandExists>("PC_CommandExists");
-    RegisterNative<natives::PC_DeleteCommand>("PC_DeleteCommand");
+    RegisterNative<&Script::PC_RegAlias, false>("PC_RegAlias");
+    RegisterNative<&Script::PC_SetFlags>("PC_SetFlags");
+    RegisterNative<&Script::PC_GetFlags>("PC_GetFlags");
+    RegisterNative<&Script::PC_RenameCommand>("PC_RenameCommand");
+    RegisterNative<&Script::PC_CommandExists>("PC_CommandExists");
+    RegisterNative<&Script::PC_DeleteCommand>("PC_DeleteCommand");
 
-    RegisterNative<natives::PC_GetCommandArray>("PC_GetCommandArray");
-    RegisterNative<natives::PC_GetAliasArray>("PC_GetAliasArray");
-    RegisterNative<natives::PC_GetArraySize>("PC_GetArraySize");
-    RegisterNative<natives::PC_GetCommandName>("PC_GetCommandName");
-    RegisterNative<natives::PC_FreeArray>("PC_FreeArray");
+    RegisterNative<&Script::PC_GetCommandArray>("PC_GetCommandArray");
+    RegisterNative<&Script::PC_GetAliasArray>("PC_GetAliasArray");
+    RegisterNative<&Script::PC_GetArraySize>("PC_GetArraySize");
+    RegisterNative<&Script::PC_GetCommandName>("PC_GetCommandName");
+    RegisterNative<&Script::PC_FreeArray>("PC_FreeArray");
 
-    RegisterNative<natives::PC_EmulateCommand>("PC_EmulateCommand");
+    RegisterNative<&Script::PC_EmulateCommand>("PC_EmulateCommand");
 
     Log("plugin v%s by katursis loaded", VersionAsString().c_str());
 
