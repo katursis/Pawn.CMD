@@ -8,13 +8,11 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cc" />
-    <ClCompile Include="src\natives.cc" />
     <ClCompile Include="src\script.cc" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\cell.h" />
     <ClInclude Include="src\main.h" />
-    <ClInclude Include="src\natives.h" />
     <ClInclude Include="src\plugin.h" />
     <ClInclude Include="src\script.h" />
   </ItemGroup>
@@ -25,13 +23,13 @@
     <ProjectGuid>{523865D8-E0F7-4D89-9F51-4F49F27CD5E4}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>pawncmd</RootNamespace>
-    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>

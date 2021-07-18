@@ -2,12 +2,10 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClCompile Include="src\main.cc" />
-    <ClCompile Include="src\natives.cc" />
     <ClCompile Include="src\script.cc" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\main.h" />
-    <ClInclude Include="src\natives.h" />
     <ClInclude Include="src\plugin.h" />
     <ClInclude Include="src\script.h" />
     <ClInclude Include="src\cell.h" />
