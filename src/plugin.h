@@ -53,7 +53,21 @@ class Plugin : public ptl::AbstractPlugin<Plugin, Script, Cell> {
 
     RegisterNative<&Script::PC_EmulateCommand>("PC_EmulateCommand");
 
-    Log("plugin v%s by katursis loaded", VersionAsString().c_str());
+    Log("\n\n"
+        "    | %s %s | 2016 - %s"
+        "\n"
+        "    |--------------------------------"
+        "\n"
+        "    | Author and maintainer: katursis"
+        "\n\n\n"
+        "    | Compiled: %s at %s"
+        "\n"
+        "    |--------------------------------------------------------------"
+        "\n"
+        "    | Repository: https://github.com/katursis/%s"
+        "\n",
+        Name(), VersionAsString().c_str(), &__DATE__[7], __DATE__, __TIME__,
+        Name());
 
     return true;
   }
@@ -61,7 +75,7 @@ class Plugin : public ptl::AbstractPlugin<Plugin, Script, Cell> {
   void OnUnload() {
     SaveConfig();
 
-    Log("plugin v%s by katursis unloaded", VersionAsString().c_str());
+    Log("plugin unloaded");
   }
 
   void ReadConfig() {
