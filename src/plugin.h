@@ -137,7 +137,7 @@ class Plugin : public ptl::AbstractPlugin<Plugin, Script, Cell> {
     }
 
     std::size_t i = 1, cmd_start{};
-    while (cmdtext[i] && cmdtext[i] == ' ') {
+    while (cmdtext[i] == ' ') {
       i++;
     }  // skip excess spaces before cmd
     cmd_start = i;
