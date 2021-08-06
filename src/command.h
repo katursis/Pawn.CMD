@@ -22,39 +22,28 @@
  * SOFTWARE.
  */
 
-#ifndef PAWNCMD_MAIN_H_
-#define PAWNCMD_MAIN_H_
+#ifndef PAWNCMD_COMMAND_H_
+#define PAWNCMD_COMMAND_H_
 
-#define _GLIBCXX_USE_CXX11_ABI 0 // For compatibility with samp03svr that was compiled with an older (< 5.1) version of GCC
+using PublicPtr = std::shared_ptr<ptl::Public>;
 
-#include <queue>
-#include <regex>
-#include <string>
-#include <unordered_map>
-#include <unordered_set>
-#include <vector>
-#include <locale>
-#include <codecvt>
+class Command {
+ public:
+  Command(const PublicPtr &pub, unsigned int flags = 0, bool is_alias = false)
+      : public_{pub}, flags_{flags}, is_alias_{is_alias} {}
 
-#include "samp-ptl/ptl.h"
-#include "urmem/urmem.hpp"
-#include "cpptoml/include/cpptoml.h"
+  inline const PublicPtr &GetPublic() const { return public_; }
 
-#include "Pawn.CMD.inc"
+  inline unsigned int GetFlags() const { return flags_; }
 
-#ifdef THISCALL
-#undef THISCALL
-#endif
+  inline void SetFlags(unsigned int flags) { flags_ = flags; }
 
-#ifdef _WIN32
-#define THISCALL __thiscall
-#else
-#define THISCALL
-#endif
+  inline bool IsAlias() const { return is_alias_; }
 
-#include "command.h"
-#include "script.h"
-#include "cell.h"
-#include "plugin.h"
+ private:
+  PublicPtr public_;
+  unsigned int flags_{};
+  bool is_alias_{};
+};
 
-#endif  // PAWNCMD_MAIN_H_
+#endif  // PAWNCMD_COMMAND_H_
