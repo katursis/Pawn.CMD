@@ -133,9 +133,8 @@ class Plugin : public ptl::AbstractPlugin<Plugin, Script, Cell> {
       throw std::runtime_error{"CFilterScripts::OnPlayerCommandText not found"};
     }
 
-    hook_fs__on_player_command_text_ = std::make_shared<urmem::hook>(
-        addr_opct,
-        urmem::get_func_addr(&HOOK_CFilterScripts__OnPlayerCommandText));
+    hook_fs__on_player_command_text_ =
+        urmem::hook::make(addr_opct, &HOOK_CFilterScripts__OnPlayerCommandText);
   }
 
   static int THISCALL HOOK_CFilterScripts__OnPlayerCommandText(
