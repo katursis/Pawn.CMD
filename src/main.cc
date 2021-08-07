@@ -29,15 +29,11 @@ PLUGIN_EXPORT unsigned int PLUGIN_CALL Supports() {
 }
 
 PLUGIN_EXPORT bool PLUGIN_CALL Load(void **ppData) {
-  return Plugin::Instance().DoLoad(ppData);
+  return Plugin::DoLoad(ppData);
 }
 
-PLUGIN_EXPORT void PLUGIN_CALL Unload() { Plugin::Instance().DoUnload(); }
+PLUGIN_EXPORT void PLUGIN_CALL Unload() { Plugin::DoUnload(); }
 
-PLUGIN_EXPORT void PLUGIN_CALL AmxLoad(AMX *amx) {
-  Plugin::Instance().DoAmxLoad(amx);
-}
+PLUGIN_EXPORT void PLUGIN_CALL AmxLoad(AMX *amx) { Plugin::DoAmxLoad(amx); }
 
-PLUGIN_EXPORT void PLUGIN_CALL AmxUnload(AMX *amx) {
-  Plugin::Instance().DoAmxUnload(amx);
-}
+PLUGIN_EXPORT void PLUGIN_CALL AmxUnload(AMX *amx) { Plugin::DoAmxUnload(amx); }

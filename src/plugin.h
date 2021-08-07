@@ -174,7 +174,7 @@ class Plugin : public ptl::AbstractPlugin<Plugin, Script, Cell> {
 
     cmd = Script::PrepareCommandName(cmd);
 
-    Plugin::Instance().EveryScript([=](auto &script) {
+    Plugin::EveryScript([=](auto &script) {
       return script->HandleCommand(playerid, cmdtext, cmd, params);
     });
   }

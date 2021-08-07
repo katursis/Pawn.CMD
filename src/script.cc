@@ -95,7 +95,7 @@ bool Script::HandleCommand(cell playerid, const char *cmdtext,
       return false;  // break the cycle
     }
   } catch (const std::exception &e) {
-    Plugin::Instance().Log("%s: %s", __func__, e.what());
+    Plugin::Log("%s: %s", __func__, e.what());
   }
 
   return true;
