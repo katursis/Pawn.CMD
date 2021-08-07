@@ -228,7 +228,13 @@ cell Script::PC_RegAlias(cell *params) {
 cell Script::PC_SetFlags(std::string cmd_name, cell flags) {
   cmd_name = PrepareCommandName(cmd_name);
 
-  GetCommand(cmd_name, true)->SetFlags(flags);
+  auto &command = GetCommand(cmd_name);
+
+  for (const auto &item : cmds_) {
+    if (item.second->GetPublic() == command->GetPublic()) {
+      item.second->SetFlags(flags);
+    }
+  }
 
   return 1;
 }
