@@ -12,6 +12,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\cell.h" />
+    <ClInclude Include="src\command.h" />
     <ClInclude Include="src\main.h" />
     <ClInclude Include="src\plugin.h" />
     <ClInclude Include="src\script.h" />

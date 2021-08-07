@@ -9,6 +9,7 @@
     <ClInclude Include="src\plugin.h" />
     <ClInclude Include="src\script.h" />
     <ClInclude Include="src\cell.h" />
+    <ClInclude Include="src\command.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="src\Pawn.CMD.inc" />
