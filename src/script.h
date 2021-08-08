@@ -25,8 +25,9 @@
 #ifndef PAWNCMD_SCRIPT_H_
 #define PAWNCMD_SCRIPT_H_
 
-using CmdArray = std::vector<std::string>;
+using CmdArray = std::vector<std::string>; // actually array of names, sorry for the bad naming
 using CmdArrayPtr = std::shared_ptr<CmdArray>;
+
 using CommandPtr = std::shared_ptr<Command>;
 
 class Script : public ptl::AbstractScript<Script> {
@@ -34,32 +35,6 @@ class Script : public ptl::AbstractScript<Script> {
   const char *VarIsGamemode() { return "_pawncmd_is_gamemode"; }
 
   const char *VarVersion() { return "_pawncmd_version"; }
-
-  bool OnLoad();
-
-  bool HandleCommand(cell playerid, const char *cmdtext, const std::string &cmd,
-                     const char *params);
-
-  void NewCommand(const std::string &name, const PublicPtr &pub,
-                  unsigned int flags = 0, bool is_alias = false);
-
-  const CommandPtr &GetCommand(const std::string &name, bool strict = false);
-
-  cell DeleteCommand(const std::string &name);
-
-  cell CommandExists(const std::string &name);
-
-  cell NewCmdArray();
-
-  cell NewAliasArray(const std::string &cmd_name);
-
-  void DeleteArray(cell arr);
-
-  const CmdArrayPtr &GetCmdArray(cell ptr);
-
-  void InitFlagsAndAliases();
-
-  static std::string PrepareCommandName(const std::string &name);
 
   // native PC_Init();
   cell PC_Init();
@@ -99,6 +74,32 @@ class Script : public ptl::AbstractScript<Script> {
 
   // native PC_EmulateCommand(playerid, const cmdtext[]);
   cell PC_EmulateCommand(cell playerid, std::string cmdtext);
+
+  bool OnLoad();
+
+  bool HandleCommand(cell playerid, const char *cmdtext, const std::string &cmd,
+                     const char *params);
+
+  void NewCommand(const std::string &name, const PublicPtr &pub,
+                  unsigned int flags = 0, bool is_alias = false);
+
+  const CommandPtr &GetCommand(const std::string &name, bool strict = false);
+
+  cell DeleteCommand(const std::string &name);
+
+  cell CommandExists(const std::string &name);
+
+  cell NewCmdArray();
+
+  cell NewAliasArray(const std::string &cmd_name);
+
+  void DeleteArray(cell arr);
+
+  const CmdArrayPtr &GetCmdArray(cell ptr);
+
+  void InitFlagsAndAliases();
+
+  static std::string PrepareCommandName(const std::string &name);
 
  private:
   const std::regex regex_public_cmd_name_{R"(pc_cmd_(\w+))"};

@@ -8,6 +8,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cc" />
+    <ClCompile Include="src\plugin.cc" />
     <ClCompile Include="src\script.cc" />
   </ItemGroup>
   <ItemGroup>

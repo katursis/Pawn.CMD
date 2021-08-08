@@ -31,78 +31,13 @@ class Plugin : public ptl::AbstractPlugin<Plugin, Script, NativeParam> {
 
   int Version() { return PAWNCMD_VERSION; }
 
-  bool OnLoad() {
-    ReadConfig();
+  bool OnLoad();
 
-    InstallHooks();
+  void OnUnload();
 
-    RegisterNative<&Script::PC_Init>("PC_Init");
+  void ReadConfig();
 
-    RegisterNative<&Script::PC_RegAlias, false>("PC_RegAlias");
-    RegisterNative<&Script::PC_SetFlags>("PC_SetFlags");
-    RegisterNative<&Script::PC_GetFlags>("PC_GetFlags");
-    RegisterNative<&Script::PC_RenameCommand>("PC_RenameCommand");
-    RegisterNative<&Script::PC_CommandExists>("PC_CommandExists");
-    RegisterNative<&Script::PC_DeleteCommand>("PC_DeleteCommand");
-
-    RegisterNative<&Script::PC_GetCommandArray>("PC_GetCommandArray");
-    RegisterNative<&Script::PC_GetAliasArray>("PC_GetAliasArray");
-    RegisterNative<&Script::PC_GetArraySize>("PC_GetArraySize");
-    RegisterNative<&Script::PC_GetCommandName>("PC_GetCommandName");
-    RegisterNative<&Script::PC_FreeArray>("PC_FreeArray");
-
-    RegisterNative<&Script::PC_EmulateCommand>("PC_EmulateCommand");
-
-    Log("\n\n"
-        "    | %s %s | 2016 - %s"
-        "\n"
-        "    |--------------------------------"
-        "\n"
-        "    | Author and maintainer: katursis"
-        "\n\n\n"
-        "    | Compiled: %s at %s"
-        "\n"
-        "    |--------------------------------------------------------------"
-        "\n"
-        "    | Repository: https://github.com/katursis/%s"
-        "\n",
-        Name(), VersionAsString().c_str(), &__DATE__[7], __DATE__, __TIME__,
-        Name());
-
-    return true;
-  }
-
-  void OnUnload() {
-    SaveConfig();
-
-    Log("plugin unloaded");
-  }
-
-  void ReadConfig() {
-    std::fstream{config_path_, std::fstream::out | std::fstream::app};
-
-    const auto config = cpptoml::parse_file(config_path_);
-
-    case_insensitivity_ =
-        config->get_as<bool>("CaseInsensitivity").value_or(true);
-    legacy_opct_support_ =
-        config->get_as<bool>("LegacyOpctSupport").value_or(true);
-    use_caching_ = config->get_as<bool>("UseCaching").value_or(true);
-    locale_ =
-        std::locale{config->get_as<std::string>("LocaleName").value_or("C")};
-  }
-
-  void SaveConfig() {
-    auto config = cpptoml::make_table();
-
-    config->insert("CaseInsensitivity", case_insensitivity_);
-    config->insert("LegacyOpctSupport", legacy_opct_support_);
-    config->insert("UseCaching", use_caching_);
-    config->insert("LocaleName", locale_.name());
-
-    std::fstream{config_path_, std::fstream::out | std::fstream::trunc}
-        << (*config);
-  }
+  void SaveConfig();
 
   bool CaseInsensitivity() const { return case_insensitivity_; }
 
@@ -110,73 +45,14 @@ class Plugin : public ptl::AbstractPlugin<Plugin, Script, NativeParam> {
 
   bool UseCaching() const { return use_caching_; }
 
-  inline std::string ToLower(const std::string &str) {
-    try {
-      auto result = str;
+  std::string ToLower(const std::string &str);
 
-      std::use_facet<std::ctype<char>>(locale_).tolower(
-          &result.front(), &result.front() + result.size());
-
-      return result;
-    } catch (const std::exception &e) {
-      Log("%s (%s): %s", __func__, str.c_str(), e.what());
-    }
-
-    return str;
-  }
-
-  void InstallHooks() {
-    urmem::address_t addr_opct{};
-    urmem::sig_scanner scanner;
-    if (!scanner.init(reinterpret_cast<urmem::address_t>(logprintf_)) ||
-        !scanner.find(opct_pattern_, opct_mask_, addr_opct)) {
-      throw std::runtime_error{"CFilterScripts::OnPlayerCommandText not found"};
-    }
-
-    hook_fs__on_player_command_text_ =
-        urmem::hook::make(addr_opct, &HOOK_CFilterScripts__OnPlayerCommandText);
-  }
+  void InstallHooks();
 
   static int THISCALL HOOK_CFilterScripts__OnPlayerCommandText(
-      void *, cell playerid, const char *cmdtext) {
-    ProcessCommand(playerid, cmdtext);
+      void *, cell playerid, const char *cmdtext);
 
-    return 1;
-  }
-
-  static void ProcessCommand(cell playerid, const char *cmdtext) {
-    if (!cmdtext || cmdtext[0] != '/') {
-      return;
-    }
-
-    std::size_t i = 1, cmd_start{};
-    while (cmdtext[i] == ' ') {
-      i++;
-    }  // skip excess spaces before cmd
-    cmd_start = i;
-
-    while (cmdtext[i] && cmdtext[i] != ' ') {
-      i++;
-    }
-
-    std::string cmd{&cmdtext[cmd_start], &cmdtext[i]};
-
-    if (cmd.empty()) {
-      return;
-    }
-
-    while (cmdtext[i] == ' ') {
-      i++;
-    }  // skip excess spaces after cmd
-
-    const char *params = &cmdtext[i];
-
-    cmd = Script::PrepareCommandName(cmd);
-
-    Plugin::EveryScript([=](auto &script) {
-      return script->HandleCommand(playerid, cmdtext, cmd, params);
-    });
-  }
+  static void ProcessCommand(cell playerid, const char *cmdtext);
 
  private:
 #ifdef _WIN32

@@ -25,7 +25,7 @@
 #ifndef PAWNCMD_NATIVE_PARAM_H_
 #define PAWNCMD_NATIVE_PARAM_H_
 
-struct NativeParam : public Script::NativeParam {
+struct NativeParam : Script::NativeParam {
   operator CmdArrayPtr() { return script.GetCmdArray(raw_value); }
 };
 
