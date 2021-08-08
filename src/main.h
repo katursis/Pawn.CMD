@@ -54,7 +54,7 @@
 
 #include "command.h"
 #include "script.h"
-#include "cell.h"
+#include "native_param.h"
 #include "plugin.h"
 
 #endif  // PAWNCMD_MAIN_H_

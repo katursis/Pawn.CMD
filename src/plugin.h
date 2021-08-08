@@ -25,7 +25,7 @@
 #ifndef PAWNCMD_PLUGIN_H_
 #define PAWNCMD_PLUGIN_H_
 
-class Plugin : public ptl::AbstractPlugin<Plugin, Script, Cell> {
+class Plugin : public ptl::AbstractPlugin<Plugin, Script, NativeParam> {
  public:
   const char *Name() { return "Pawn.CMD"; }
 

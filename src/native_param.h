@@ -22,12 +22,11 @@
  * SOFTWARE.
  */
 
-#ifndef PAWNCMD_CELL_H_
-#define PAWNCMD_CELL_H_
+#ifndef PAWNCMD_NATIVE_PARAM_H_
+#define PAWNCMD_NATIVE_PARAM_H_
 
-class Cell : public Script::Cell {
- public:
-  operator CmdArrayPtr() { return script_->GetCmdArray(amx_addr_); }
+struct NativeParam : public Script::NativeParam {
+  operator CmdArrayPtr() { return script.GetCmdArray(raw_value); }
 };
 
-#endif  // PAWNCMD_CELL_H_
+#endif  // PAWNCMD_NATIVE_PARAM_H_
