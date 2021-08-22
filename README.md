@@ -1,7 +1,5 @@
 # Pawn.CMD
-🚀 The fastest command processor for SA:MP server
-## Comparison 2016 (probably outdated)
-![alt tag](http://i.imgur.com/sVY9GBd.png)
+🚀 Plugin-powered command processor for SA:MP server
 ## Natives
 ```pawn
 native PC_RegAlias(const cmd[], const alias[], ...);
