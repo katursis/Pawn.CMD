@@ -25,7 +25,8 @@
 #ifndef PAWNCMD_SCRIPT_H_
 #define PAWNCMD_SCRIPT_H_
 
-using CmdArray = std::vector<std::string>; // actually array of names, sorry for the bad naming
+using CmdArray = std::vector<std::string>;  // actually array of names, sorry
+                                            // for the bad naming
 using CmdArrayPtr = std::shared_ptr<CmdArray>;
 
 using CommandPtr = std::shared_ptr<Command>;
