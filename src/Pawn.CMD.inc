@@ -29,7 +29,7 @@
         #define PACK_PLUGIN_VERSION(%0,%1,%2) (((%0) << 16) | ((%1) << 8) | (%2))
     #endif
 
-    #define PAWNCMD_VERSION PACK_PLUGIN_VERSION(3, 3, 4)
+    #define PAWNCMD_VERSION PACK_PLUGIN_VERSION(3, 3, 5)
     #define PAWNCMD_INCLUDE_VERSION PAWNCMD_VERSION // backward compatibility
 
     #if !defined __cplusplus
