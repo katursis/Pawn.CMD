@@ -145,7 +145,7 @@ bool Script::OnLoad() {
 
   auto &plugin = Plugin::Instance();
 
-  for (std::size_t index{}; index < num_publics; index++) {
+  for (int index{}; index < num_publics; index++) {
     std::string public_name = GetPublicName(index);
     std::smatch match;
     if (std::regex_match(public_name, match, regex_public_cmd_name_)) {

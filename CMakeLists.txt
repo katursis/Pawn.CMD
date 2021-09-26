@@ -2,17 +2,14 @@ cmake_minimum_required(VERSION 3.10)
 
 project(pawncmd)
 
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED True)
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/modules)
 
-if(MSVC)
-  add_definitions(-D_CRT_SECURE_NO_WARNINGS)
-  add_definitions(-DHAVE_STDINT_H)
-endif()
+include(AddSAMPPlugin)
 
-include_directories(lib)
+add_samp_plugin(${PROJECT_NAME}
+  plugin.def
 
-add_library(${PROJECT_NAME} MODULE
+  src/Pawn.CMD.inc
   src/main.h
   src/main.cc
   src/plugin.h
@@ -21,14 +18,8 @@ add_library(${PROJECT_NAME} MODULE
   src/script.h
   src/script.cc
   src/command.h
-  src/Pawn.CMD.inc
-  plugin.def
+
+  lib/samp-ptl/ptl.h
 )
 
-set_target_properties(${PROJECT_NAME} PROPERTIES PREFIX "")
-
-if(CMAKE_COMPILER_IS_GNUCC)
-  set_property(TARGET ${PROJECT_NAME} PROPERTY POSITION_INDEPENDENT_CODE Off)
-  set_property(TARGET ${PROJECT_NAME} APPEND_STRING PROPERTY COMPILE_FLAGS "-m32 -O3 -w")
-  set_property(TARGET ${PROJECT_NAME} APPEND_STRING PROPERTY LINK_FLAGS "-m32 -O3 -static-libgcc -static-libstdc++")
-endif()
+target_include_directories(${PROJECT_NAME} PRIVATE lib)
