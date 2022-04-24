@@ -55,7 +55,7 @@ void PluginComponent::onInit(IComponentList *components) {
   plugin_data_[PLUGIN_DATA_LOGPRINTF] =
       reinterpret_cast<void *>(&PluginLogprintf);
   plugin_data_[PLUGIN_DATA_AMX_EXPORTS] =
-      (void *)pawn_component_->getAmxFunctions().data();
+      const_cast<void **>(pawn_component_->getAmxFunctions().data());
 
   Plugin::DoLoad(plugin_data_);
 }
