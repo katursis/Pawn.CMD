@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2016-2021 katursis
+ * Copyright (c) 2016-2022 katursis
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,16 +24,95 @@
 
 #include "main.h"
 
-PLUGIN_EXPORT unsigned int PLUGIN_CALL Supports() {
-  return SUPPORTS_VERSION | SUPPORTS_AMX_NATIVES;
+SemanticVersion PluginComponent::componentVersion() const {
+  auto [major, minor, patch] = Plugin::VersionToTuple(PAWNCMD_VERSION);
+
+  return SemanticVersion(0, major, minor, patch);
 }
 
-PLUGIN_EXPORT bool PLUGIN_CALL Load(void **ppData) {
-  return Plugin::DoLoad(ppData);
+void PluginComponent::onLoad(ICore *c) {
+  core_ = c;
+  players_ = &c->getPlayers();
+
+  getCore() = c;
 }
 
-PLUGIN_EXPORT void PLUGIN_CALL Unload() { Plugin::DoUnload(); }
+void PluginComponent::onInit(IComponentList *components) {
+  pawn_component_ = components->queryComponent<IPawnComponent>();
+  if (!pawn_component_) {
+    StringView name = componentName();
 
-PLUGIN_EXPORT void PLUGIN_CALL AmxLoad(AMX *amx) { Plugin::DoAmxLoad(amx); }
+    core_->logLn(LogLevel::Error,
+                 "Error loading component %.*s: Pawn component not loaded",
+                 name.length(), name.data());
 
-PLUGIN_EXPORT void PLUGIN_CALL AmxUnload(AMX *amx) { Plugin::DoAmxUnload(amx); }
+    return;
+  }
+
+  pawn_component_->getEventDispatcher().addEventHandler(this);
+  players_->getEventDispatcher().addEventHandler(this);
+
+  plugin_data_[PLUGIN_DATA_LOGPRINTF] =
+      reinterpret_cast<void *>(&PluginLogprintf);
+  plugin_data_[PLUGIN_DATA_AMX_EXPORTS] =
+      (void *)pawn_component_->getAmxFunctions().data();
+
+  Plugin::DoLoad(plugin_data_);
+}
+
+void PluginComponent::onAmxLoad(void *amx) {
+  Plugin::DoAmxLoad(static_cast<AMX *>(amx));
+};
+
+void PluginComponent::onAmxUnload(void *amx) {
+  Plugin::DoAmxUnload(static_cast<AMX *>(amx));
+};
+
+void PluginComponent::onFree(IComponent *component) {
+  if (component == pawn_component_ || component == this) {
+    Plugin::DoUnload();
+
+    pawn_component_ = nullptr;
+  }
+}
+
+void PluginComponent::reset() {}
+
+void PluginComponent::free() {
+  if (pawn_component_) {
+    pawn_component_->getEventDispatcher().removeEventHandler(this);
+    players_->getEventDispatcher().removeEventHandler(this);
+  }
+
+  delete this;
+}
+
+bool PluginComponent::onCommandText(IPlayer &player, StringView message) {
+  Plugin::ProcessCommand(player.getID(),
+                         std::string(message.data(), message.length()).c_str());
+
+  return true;
+}
+
+void PluginComponent::PluginLogprintf(const char *fmt, ...) {
+  auto core = getCore();
+  if (!core) {
+    return;
+  }
+
+  va_list args{};
+
+  va_start(args, fmt);
+
+  core->vprintLn(fmt, args);
+
+  va_end(args);
+}
+
+ICore *&PluginComponent::getCore() {
+  static ICore *core{};
+
+  return core;
+}
+
+COMPONENT_ENTRY_POINT() { return new PluginComponent(); }

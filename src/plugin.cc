@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2016-2021 katursis
+ * Copyright (c) 2016-2022 katursis
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,8 +26,6 @@
 
 bool Plugin::OnLoad() {
   ReadConfig();
-
-  InstallHooks();
 
   RegisterNative<&Script::PC_Init>("PC_Init");
 
@@ -110,25 +108,6 @@ std::string Plugin::ToLower(const std::string &str) {
   }
 
   return str;
-}
-
-void Plugin::InstallHooks() {
-  urmem::address_t addr_opct{};
-  urmem::sig_scanner scanner;
-  if (!scanner.init(reinterpret_cast<urmem::address_t>(logprintf_)) ||
-      !scanner.find(opct_pattern_, opct_mask_, addr_opct)) {
-    throw std::runtime_error{"CFilterScripts::OnPlayerCommandText not found"};
-  }
-
-  hook_fs__on_player_command_text_ =
-      urmem::hook::make(addr_opct, &HOOK_CFilterScripts__OnPlayerCommandText);
-}
-
-int THISCALL Plugin::HOOK_CFilterScripts__OnPlayerCommandText(
-    void *, cell playerid, const char *cmdtext) {
-  ProcessCommand(playerid, cmdtext);
-
-  return 1;
 }
 
 void Plugin::ProcessCommand(cell playerid, const char *cmdtext) {

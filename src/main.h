@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2016-2021 katursis
+ * Copyright (c) 2016-2022 katursis
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,6 +25,8 @@
 #ifndef PAWNCMD_MAIN_H_
 #define PAWNCMD_MAIN_H_
 
+#define _GLIBCXX_USE_CXX11_ABI 1
+
 #include <queue>
 #include <regex>
 #include <string>
@@ -33,9 +35,11 @@
 #include <vector>
 #include <locale>
 #include <codecvt>
+#include <cstdarg>
 
+#include "sdk.hpp"
+#include "Server/Components/Pawn/pawn.hpp"
 #include "samp-ptl/ptl.h"
-#include "urmem/urmem.hpp"
 #include "cpptoml/include/cpptoml.h"
 
 #include "Pawn.CMD.inc"
@@ -54,5 +58,42 @@
 #include "script.h"
 #include "native_param.h"
 #include "plugin.h"
+
+class PluginComponent final : public IComponent,
+                              public PawnEventHandler,
+                              public PlayerEventHandler {
+  PROVIDE_UID(0xa03b47c907a96c29);
+
+  StringView componentName() const override { return "Pawn.CMD"; }
+
+  SemanticVersion componentVersion() const override;
+
+  void onLoad(ICore *c) override;
+
+  void onInit(IComponentList *components) override;
+
+  void onAmxLoad(void *amx) override;
+
+  void onAmxUnload(void *amx) override;
+
+  void onFree(IComponent *component) override;
+
+  void reset() override;
+
+  void free() override;
+
+  bool onCommandText(IPlayer &player, StringView message) override;
+
+  static void PluginLogprintf(const char *fmt, ...);
+
+  static ICore *&getCore();
+
+ private:
+  ICore *core_{};
+  IPlayerPool *players_{};
+  IPawnComponent *pawn_component_{};
+
+  void *plugin_data_[MAX_PLUGIN_DATA]{};
+};
 
 #endif  // PAWNCMD_MAIN_H_

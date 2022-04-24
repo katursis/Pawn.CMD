@@ -6,6 +6,8 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/modules)
 
 include(AddSAMPPlugin)
 
+add_subdirectory(lib/omp-sdk)
+
 add_samp_plugin(${PROJECT_NAME}
   plugin.def
 
@@ -23,3 +25,5 @@ add_samp_plugin(${PROJECT_NAME}
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE lib)
+
+target_link_libraries(${PROJECT_NAME} PRIVATE OMP-SDK)
