@@ -1,5 +1,5 @@
 # Pawn.CMD
-🚀 Plugin-powered command processor for SA:MP server
+🚀 Plugin-powered (component) command processor for open.mp (Open Multiplayer, OMP) server
 ## Natives
 ```pawn
 native PC_RegAlias(const cmd[], const alias[], ...);
@@ -24,16 +24,9 @@ forward OnPlayerCommandReceived(playerid, cmd[], params[], flags);
 forward OnPlayerCommandPerformed(playerid, cmd[], params[], result, flags);
 ```
 ## How to install
-Extract archive in server folder. Update your server.cfg
-- Windows
-```
-plugins pawncmd.dll
-```
-- Linux
-```
-plugins pawncmd.so
-```
-## Configuration (pawncmd.cfg in plugins folder)
+Extract the archive in your server folder. Place .dll/.so inside **components** folder. Update your server.cfg/config.json
+
+## Configuration (pawncmd.cfg in components folder)
 **The values in parentheses are default values**
 * CaseInsensitivity (**true**)
 * LegacyOpctSupport (**true**)
