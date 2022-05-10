@@ -45,17 +45,17 @@ bool Plugin::OnLoad() {
   RegisterNative<&Script::PC_EmulateCommand>("PC_EmulateCommand");
 
   Log("\n\n"
-      "    | %s %s | 2016 - %s"
+      "    | %s %s | omp-beta4 | 2016 - %s"
       "\n"
-      "    |--------------------------------"
+      "    |-----------------------------------------"
       "\n"
       "    | Author and maintainer: katursis"
       "\n\n\n"
       "    | Compiled: %s at %s"
       "\n"
-      "    |--------------------------------------------------------------"
+      "    |----------------------------------------------------------"
       "\n"
-      "    | Repository: https://github.com/katursis/%s"
+      "    | Repository: https://github.com/katursis/%s/tree/omp"
       "\n",
       Name(), VersionAsString().c_str(), &__DATE__[7], __DATE__, __TIME__,
       Name());

@@ -64,7 +64,7 @@ class PluginComponent final : public IComponent,
                               public PlayerEventHandler {
   PROVIDE_UID(0xa03b47c907a96c29);
 
-  StringView componentName() const override { return "Pawn.CMD"; }
+  StringView componentName() const override;
 
   SemanticVersion componentVersion() const override;
 
@@ -82,7 +82,7 @@ class PluginComponent final : public IComponent,
 
   void free() override;
 
-  bool onCommandText(IPlayer &player, StringView message) override;
+  bool onPlayerCommandText(IPlayer &player, StringView message) override;
 
   static void PluginLogprintf(const char *fmt, ...);
 

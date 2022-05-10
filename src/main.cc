@@ -24,8 +24,13 @@
 
 #include "main.h"
 
+StringView PluginComponent::componentName() const {
+  return Plugin::Instance().Name();
+}
+
 SemanticVersion PluginComponent::componentVersion() const {
-  auto [major, minor, patch] = Plugin::VersionToTuple(PAWNCMD_VERSION);
+  auto [major, minor, patch] =
+      Plugin::VersionToTuple(Plugin::Instance().Version());
 
   return SemanticVersion(0, major, minor, patch);
 }
@@ -87,7 +92,7 @@ void PluginComponent::free() {
   delete this;
 }
 
-bool PluginComponent::onCommandText(IPlayer &player, StringView message) {
+bool PluginComponent::onPlayerCommandText(IPlayer &player, StringView message) {
   Plugin::ProcessCommand(player.getID(),
                          std::string(message.data(), message.length()).c_str());
 
