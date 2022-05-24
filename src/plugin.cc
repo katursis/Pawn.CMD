@@ -45,7 +45,7 @@ bool Plugin::OnLoad() {
   RegisterNative<&Script::PC_EmulateCommand>("PC_EmulateCommand");
 
   Log("\n\n"
-      "    | %s %s | omp-beta4 | 2016 - %s"
+      "    | %s %s | omp-beta5 | 2016 - %s"
       "\n"
       "    |-----------------------------------------"
       "\n"
