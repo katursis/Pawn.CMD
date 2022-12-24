@@ -55,7 +55,7 @@ void PluginComponent::onInit(IComponentList *components) {
   }
 
   pawn_component_->getEventDispatcher().addEventHandler(this);
-  players_->getEventDispatcher().addEventHandler(this);
+  players_->getPlayerTextDispatcher().addEventHandler(this);
 
   plugin_data_[PLUGIN_DATA_LOGPRINTF] =
       reinterpret_cast<void *>(&PluginLogprintf);
@@ -65,12 +65,12 @@ void PluginComponent::onInit(IComponentList *components) {
   Plugin::DoLoad(plugin_data_);
 }
 
-void PluginComponent::onAmxLoad(void *amx) {
-  Plugin::DoAmxLoad(static_cast<AMX *>(amx));
+void PluginComponent::onAmxLoad(IPawnScript &script) {
+  Plugin::DoAmxLoad(static_cast<AMX *>(script.GetAMX()));
 };
 
-void PluginComponent::onAmxUnload(void *amx) {
-  Plugin::DoAmxUnload(static_cast<AMX *>(amx));
+void PluginComponent::onAmxUnload(IPawnScript &script) {
+  Plugin::DoAmxUnload(static_cast<AMX *>(script.GetAMX()));
 };
 
 void PluginComponent::onFree(IComponent *component) {
@@ -79,7 +79,7 @@ void PluginComponent::onFree(IComponent *component) {
 
     if (pawn_component_) {
       pawn_component_->getEventDispatcher().removeEventHandler(this);
-      players_->getEventDispatcher().removeEventHandler(this);
+      players_->getPlayerTextDispatcher().removeEventHandler(this);
     }
 
     pawn_component_ = nullptr;

@@ -61,7 +61,7 @@
 
 class PluginComponent final : public IComponent,
                               public PawnEventHandler,
-                              public PlayerEventHandler {
+                              public PlayerTextEventHandler {
   PROVIDE_UID(0xa03b47c907a96c29);
 
   StringView componentName() const override;
@@ -72,9 +72,9 @@ class PluginComponent final : public IComponent,
 
   void onInit(IComponentList *components) override;
 
-  void onAmxLoad(void *amx) override;
+  void onAmxLoad(IPawnScript &script) override;
 
-  void onAmxUnload(void *amx) override;
+  void onAmxUnload(IPawnScript &script) override;
 
   void onFree(IComponent *component) override;
 
