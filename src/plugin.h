@@ -33,6 +33,8 @@ class Plugin : public ptl::AbstractPlugin<Plugin, Script, NativeParam> {
 
   bool OnLoad();
 
+  bool LogAmxErrors();
+
   void OnUnload();
 
   void ReadConfig();
@@ -55,6 +57,7 @@ class Plugin : public ptl::AbstractPlugin<Plugin, Script, NativeParam> {
   bool case_insensitivity_{};
   bool legacy_opct_support_{};
   bool use_caching_{};
+  bool log_amx_errors_{};
   std::locale locale_;
 };
 
