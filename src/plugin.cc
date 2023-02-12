@@ -65,6 +65,8 @@ bool Plugin::OnLoad() {
   return true;
 }
 
+bool Plugin::LogAmxErrors() { return log_amx_errors_; }
+
 void Plugin::OnUnload() {
   SaveConfig();
 
@@ -81,6 +83,7 @@ void Plugin::ReadConfig() {
   legacy_opct_support_ =
       config->get_as<bool>("LegacyOpctSupport").value_or(true);
   use_caching_ = config->get_as<bool>("UseCaching").value_or(true);
+  log_amx_errors_ = config->get_as<bool>("LogAmxErrors").value_or(true);
   locale_ =
       std::locale{config->get_as<std::string>("LocaleName").value_or("C")};
 }
@@ -91,6 +94,7 @@ void Plugin::SaveConfig() {
   config->insert("CaseInsensitivity", case_insensitivity_);
   config->insert("LegacyOpctSupport", legacy_opct_support_);
   config->insert("UseCaching", use_caching_);
+  config->insert("LogAmxErrors", log_amx_errors_);
   config->insert("LocaleName", locale_.name());
 
   std::fstream{config_path_, std::fstream::out | std::fstream::trunc}
