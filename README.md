@@ -39,6 +39,7 @@ plugins pawncmd.so
 * LegacyOpctSupport (**true**)
 * LocaleName (**"C"**)
 * UseCaching (**true**)
+* LogAmxErrors (**true**)
 ## Example command
 ```pawn
 #include <Pawn.CMD>
