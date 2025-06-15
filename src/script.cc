@@ -226,6 +226,10 @@ void Script::NewCommand(const std::string &name, const PublicPtr &pub,
 }
 
 const CommandPtr &Script::GetCommand(const std::string &name, bool strict) {
+  if(!cmds_.contains(name)) {
+      throw std::runtime_error{"Command '" + name + "' doesn't exist"};
+  }
+
   const auto &command = cmds_.at(name);
 
   if (strict && command->IsAlias()) {

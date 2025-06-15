@@ -8,6 +8,8 @@ include(AddSAMPPlugin)
 
 add_subdirectory(lib/omp-sdk)
 
+set(CMAKE_CXX_STANDARD 20)
+
 add_samp_plugin(${PROJECT_NAME}
   plugin.def
 
