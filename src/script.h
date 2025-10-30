@@ -94,9 +94,9 @@ class Script : public ptl::AbstractScript<Script> {
 
   cell NewAliasArray(const std::string &cmd_name);
 
-  void DeleteArray(cell arr);
+  bool DeleteArray(cell handle);
 
-  const CmdArrayPtr &GetCmdArray(cell ptr);
+  const CmdArrayPtr &GetCmdArray(cell handle);
 
   void InitFlagsAndAliases();
 
@@ -113,7 +113,9 @@ class Script : public ptl::AbstractScript<Script> {
   PublicPtr opcp_public_;     // OnPlayerCommandPerformed
   PublicPtr on_init_public_;  // PC_OnInit
 
-  std::unordered_set<std::shared_ptr<CmdArray>> cmd_arrays_;
+  std::unordered_map<cell, CmdArrayPtr> cmd_arrays_;
+  cell next_handle_ = 1;
+  std::queue<cell> free_handles_;
 
   std::deque<PublicPtr> init_flags_and_aliases_pubs_;
 };

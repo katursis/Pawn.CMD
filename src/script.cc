@@ -254,9 +254,15 @@ cell Script::NewCmdArray() {
     arr->push_back(item.first);
   }
 
-  cmd_arrays_.insert(arr);
-
-  return reinterpret_cast<cell>(arr.get());
+  cell handle = next_handle_++;
+  if (!free_handles_.empty()) {
+    handle = free_handles_.front();
+    free_handles_.pop();
+  } else {
+    handle = next_handle_++;
+  }
+  cmd_arrays_[handle] = arr;
+  return handle;
 }
 
 cell Script::NewAliasArray(const std::string &cmd_name) {
@@ -273,23 +279,35 @@ cell Script::NewAliasArray(const std::string &cmd_name) {
     arr->push_back(item.first);
   }
 
-  cmd_arrays_.insert(arr);
-
-  return reinterpret_cast<cell>(arr.get());
+  cell handle;
+  if (!free_handles_.empty()) {
+    handle = free_handles_.front();
+    free_handles_.pop();
+  } else {
+    handle = next_handle_++;
+  }
+  cmd_arrays_[handle] = arr;
+  return handle;
 }
 
-void Script::DeleteArray(cell arr) { cmd_arrays_.erase(GetCmdArray(arr)); }
+bool Script::DeleteArray(cell handle)
+{	
+    auto it = cmd_arrays_.find(handle);
+    if (it == cmd_arrays_.end()) {
+        return false;  // invalid handle
+    }
 
-const CmdArrayPtr &Script::GetCmdArray(cell ptr) {
-  const auto iter = std::find_if(
-      cmd_arrays_.begin(), cmd_arrays_.end(),
-      [ptr](const auto &p) { return reinterpret_cast<cell>(p.get()) == ptr; });
+    // erase shared_ptr — automatically frees memory if no other refs exist
+    cmd_arrays_.erase(it);
+    return true;
+}
 
+const CmdArrayPtr &Script::GetCmdArray(cell handle) {
+  auto iter = cmd_arrays_.find(handle);
   if (iter == cmd_arrays_.end()) {
     throw std::runtime_error{"Invalid array handle"};
   }
-
-  return *iter;
+  return iter->second;
 }
 
 void Script::InitFlagsAndAliases() {
